@@ -12,6 +12,7 @@ class Settings(BaseSettings):
     ELEVENLABS_API_KEY: str = ""
     DEEPGRAM_API_KEY: str = ""
     OPENAI_API_KEY: str = ""
+    GEMINI_API_KEY: str = ""
     AUTH0_CLIENT_ID: str = ""
     DEV_AUTH: bool = False  # Only enable via DEV_AUTH=true in .env
     UPLOAD_DIR: str = "./uploads"

@@ -1,7 +1,7 @@
-"""Generate course thumbnail images using DALL-E 3 via OpenAI API."""
+"""Generate course thumbnail images using Gemini Imagen (primary) or DALL-E 3 (fallback)."""
 
 import httpx
-import os
+import base64
 import uuid
 import logging
 from pathlib import Path
@@ -9,11 +9,9 @@ from app.core.config import get_settings
 
 logger = logging.getLogger(__name__)
 
-# Directory to store generated thumbnails
 THUMBNAILS_DIR = Path(__file__).parent.parent.parent / "static" / "thumbnails"
 THUMBNAILS_DIR.mkdir(parents=True, exist_ok=True)
 
-# Category-specific style hints for better thumbnails
 CATEGORY_STYLES = {
     "coding": "abstract digital technology, code patterns, neural networks, dark background with glowing circuits",
     "business": "professional corporate abstract, strategic planning, golden and navy colors, leadership",
@@ -23,24 +21,10 @@ CATEGORY_STYLES = {
 }
 
 
-async def generate_course_thumbnail(
-    title: str,
-    description: str | None = None,
-    category: str = "general",
-) -> str | None:
-    """
-    Generate a thumbnail for a course using DALL-E 3.
-    Returns the relative URL path to the saved image, or None on failure.
-    """
-    settings = get_settings()
-    if not settings.OPENAI_API_KEY:
-        logger.warning("No OpenAI API key — skipping thumbnail generation")
-        return None
-
+def _build_prompt(title: str, description: str | None, category: str) -> str:
     style_hint = CATEGORY_STYLES.get(category, CATEGORY_STYLES["general"])
     short_desc = (description or "")[:120]
-
-    prompt = (
+    return (
         f"Create a beautiful, modern course thumbnail illustration for an online learning course. "
         f"Course title: '{title}'. {f'About: {short_desc}. ' if short_desc else ''}"
         f"Style: {style_hint}. "
@@ -49,58 +33,97 @@ async def generate_course_thumbnail(
         f"16:9 aspect ratio composition, modern gradient aesthetic."
     )
 
+
+def _save_image(image_bytes: bytes, title: str) -> str:
+    filename = f"{uuid.uuid4().hex}.png"
+    filepath = THUMBNAILS_DIR / filename
+    filepath.write_bytes(image_bytes)
+    logger.info(f"Saved thumbnail for '{title}': {filename} ({len(image_bytes)} bytes)")
+    return f"/static/thumbnails/{filename}"
+
+
+async def _try_gemini(client: httpx.AsyncClient, api_key: str, prompt: str) -> bytes | None:
+    """Try Gemini 2.5 Flash Image (generateContent with IMAGE modality)."""
     try:
-        async with httpx.AsyncClient(timeout=60.0) as client:
-            response = await client.post(
-                "https://api.openai.com/v1/images/generations",
-                headers={
-                    "Authorization": f"Bearer {settings.OPENAI_API_KEY}",
-                    "Content-Type": "application/json",
-                },
-                json={
-                    "model": "dall-e-3",
-                    "prompt": prompt,
-                    "n": 1,
-                    "size": "1792x1024",
-                    "quality": "standard",
-                },
-            )
+        r = await client.post(
+            f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-image:generateContent?key={api_key}",
+            headers={"Content-Type": "application/json"},
+            json={
+                "contents": [{"parts": [{"text": f"Generate an image: {prompt}"}]}],
+                "generationConfig": {"responseModalities": ["IMAGE", "TEXT"]},
+            },
+        )
+        if r.status_code != 200:
+            logger.warning(f"Gemini Flash Image: {r.status_code} — {r.text[:150]}")
+            return None
 
-            if response.status_code != 200:
-                logger.error(f"DALL-E API error {response.status_code}: {response.text[:200]}")
-                return None
+        parts = r.json().get("candidates", [{}])[0].get("content", {}).get("parts", [])
+        for part in parts:
+            inline = part.get("inlineData", {})
+            if inline.get("mimeType", "").startswith("image/"):
+                return base64.b64decode(inline["data"])
 
-            data = response.json()
-            image_url = data["data"][0]["url"]
-
-            # Download the image
-            img_response = await client.get(image_url)
-            if img_response.status_code != 200:
-                logger.error("Failed to download generated image")
-                return None
-
-            # Save locally
-            filename = f"{uuid.uuid4().hex}.png"
-            filepath = THUMBNAILS_DIR / filename
-            filepath.write_bytes(img_response.content)
-
-            # Return the URL path that will be served by FastAPI static files
-            return f"/static/thumbnails/{filename}"
-
+        logger.warning("Gemini Flash Image returned no image data")
+        return None
     except Exception as e:
-        logger.error(f"Thumbnail generation failed: {e}")
+        logger.warning(f"Gemini Flash Image failed: {e}")
         return None
 
 
+async def _try_dalle(client: httpx.AsyncClient, openai_key: str, prompt: str) -> bytes | None:
+    """Fallback to DALL-E 3."""
+    try:
+        r = await client.post(
+            "https://api.openai.com/v1/images/generations",
+            headers={"Authorization": f"Bearer {openai_key}", "Content-Type": "application/json"},
+            json={"model": "dall-e-3", "prompt": prompt, "n": 1, "size": "1792x1024", "quality": "standard"},
+        )
+        if r.status_code != 200:
+            logger.warning(f"DALL-E 3: {r.status_code} — {r.text[:150]}")
+            return None
+
+        image_url = r.json()["data"][0]["url"]
+        img_r = await client.get(image_url)
+        return img_r.content if img_r.status_code == 200 else None
+    except Exception as e:
+        logger.warning(f"DALL-E 3 failed: {e}")
+        return None
+
+
+async def generate_course_thumbnail(
+    title: str,
+    description: str | None = None,
+    category: str = "general",
+) -> str | None:
+    """Generate a thumbnail. Tries Gemini first, falls back to DALL-E 3."""
+    settings = get_settings()
+    prompt = _build_prompt(title, description, category)
+
+    async with httpx.AsyncClient(timeout=90.0) as client:
+        # Try Gemini first
+        if settings.GEMINI_API_KEY:
+            image_bytes = await _try_gemini(client, settings.GEMINI_API_KEY, prompt)
+            if image_bytes:
+                return _save_image(image_bytes, title)
+
+        # Fallback to DALL-E
+        if settings.OPENAI_API_KEY:
+            image_bytes = await _try_dalle(client, settings.OPENAI_API_KEY, prompt)
+            if image_bytes:
+                return _save_image(image_bytes, title)
+
+    logger.error(f"All thumbnail providers failed for '{title}'")
+    return None
+
+
 async def generate_thumbnails_for_courses(db_session, courses: list) -> dict:
-    """Generate thumbnails for multiple courses. Returns {course_id: thumbnail_url}."""
-    from app.models.course import Course
+    """Generate thumbnails for multiple courses."""
     from sqlalchemy.orm.attributes import flag_modified
 
     results = {}
     for course in courses:
         if course.thumbnail_url:
-            continue  # Already has a thumbnail
+            continue
 
         url = await generate_course_thumbnail(
             title=course.title,
@@ -111,7 +134,6 @@ async def generate_thumbnails_for_courses(db_session, courses: list) -> dict:
             course.thumbnail_url = url
             flag_modified(course, "thumbnail_url")
             results[str(course.id)] = url
-            logger.info(f"Generated thumbnail for course '{course.title}': {url}")
 
     await db_session.commit()
     return results
