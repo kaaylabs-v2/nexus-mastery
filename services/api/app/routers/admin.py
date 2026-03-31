@@ -22,6 +22,8 @@ from app.models.program import Category, Domain, Capability, FocusSession
 from app.models.course_file import CourseFile
 from app.models.ingestion_job import IngestionJob, IngestionStatus
 from app.models.organization import Organization
+from app.models.conversation import Conversation
+from app.models.mastery_profile import MasteryProfile
 from app.services.file_storage import save_uploaded_file, delete_file
 from app.services.course_generator import analyze_content_for_course, generate_course_outline
 from app.services.rag_pipeline import extract_text_from_file, _chunk_text, embed_text
@@ -649,6 +651,108 @@ async def change_user_role(
     target.role = UserRole(role)
     await db.commit()
     return {"id": str(target.id), "role": role}
+
+
+# ─── Learner Detail (Admin) ───────────────────────────────────────────────────
+
+
+@router.get("/users/{user_id}/detail")
+async def learner_detail(
+    user_id: UUID,
+    user: User = Depends(get_current_user),
+    org_id: UUID = Depends(get_current_org_id),
+    db: AsyncSession = Depends(get_db),
+):
+    """Admin view of an individual learner — profile, courses, sessions."""
+    _require_admin(user)
+
+    # Fetch the target user
+    result = await db.execute(
+        select(User).where(User.id == user_id, User.org_id == org_id)
+    )
+    target = result.scalar_one_or_none()
+    if not target:
+        raise HTTPException(404, "User not found")
+
+    # Enrollments with course info
+    enrollment_result = await db.execute(
+        select(Enrollment, Course)
+        .join(Course, Enrollment.course_id == Course.id)
+        .where(Enrollment.user_id == user_id)
+    )
+    enrollments = []
+    for enr, course in enrollment_result.all():
+        # Count sessions for this course
+        session_count = (await db.execute(
+            select(func.count(Conversation.id))
+            .where(Conversation.user_id == user_id, Conversation.course_id == course.id)
+        )).scalar() or 0
+
+        # Get latest session info
+        latest_session = (await db.execute(
+            select(Conversation)
+            .where(Conversation.user_id == user_id, Conversation.course_id == course.id)
+            .order_by(Conversation.started_at.desc())
+            .limit(1)
+        )).scalar_one_or_none()
+
+        enrollments.append({
+            "course_id": str(course.id),
+            "course_title": course.title,
+            "course_description": course.description,
+            "thumbnail_url": course.thumbnail_url,
+            "mastery_status": enr.mastery_status.value if hasattr(enr.mastery_status, 'value') else str(enr.mastery_status),
+            "enrolled_at": enr.enrolled_at.isoformat() if enr.enrolled_at else None,
+            "mastery_achieved_at": enr.mastery_achieved_at.isoformat() if enr.mastery_achieved_at else None,
+            "session_count": session_count,
+            "current_mode": latest_session.session_mode if latest_session else None,
+            "last_session_at": latest_session.started_at.isoformat() if latest_session else None,
+        })
+
+    # Mastery profile
+    profile_result = await db.execute(
+        select(MasteryProfile).where(MasteryProfile.user_id == user_id)
+    )
+    profile = profile_result.scalar_one_or_none()
+
+    profile_data = None
+    if profile:
+        profile_data = {
+            "thinking_patterns": profile.thinking_patterns or {},
+            "knowledge_graph": profile.knowledge_graph or {},
+            "pacing_preferences": profile.pacing_preferences or {},
+            "course_progress": profile.course_progress or {},
+            "conversation_summary": profile.conversation_summary or [],
+            "updated_at": profile.updated_at.isoformat() if profile.updated_at else None,
+        }
+
+    # Session summary stats
+    total_sessions = (await db.execute(
+        select(func.count(Conversation.id)).where(Conversation.user_id == user_id)
+    )).scalar() or 0
+
+    total_messages = 0
+    sessions_result = await db.execute(
+        select(Conversation.messages).where(Conversation.user_id == user_id)
+    )
+    for (msgs,) in sessions_result.all():
+        if msgs:
+            total_messages += len(msgs)
+
+    return {
+        "id": str(target.id),
+        "display_name": target.display_name,
+        "email": target.email,
+        "role": target.role.value,
+        "created_at": target.created_at.isoformat(),
+        "enrollments": enrollments,
+        "mastery_profile": profile_data,
+        "stats": {
+            "total_sessions": total_sessions,
+            "total_messages": total_messages,
+            "courses_enrolled": len(enrollments),
+        },
+    }
 
 
 # ─── Analytics ────────────────────────────────────────────────────────────────

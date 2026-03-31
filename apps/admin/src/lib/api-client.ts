@@ -98,6 +98,9 @@ export interface Course {
   org_id: string;
   source_type?: string;
   published_at?: string | null;
+  thumbnail_url?: string | null;
+  course_category?: string | null;
+  created_at?: string;
 }
 
 export interface Category {
@@ -125,6 +128,43 @@ export interface Organization {
   name: string;
   plan_tier: string;
   settings: Record<string, unknown>;
+}
+
+export interface LearnerEnrollment {
+  course_id: string;
+  course_title: string;
+  course_description: string;
+  thumbnail_url: string | null;
+  mastery_status: string;
+  enrolled_at: string | null;
+  mastery_achieved_at: string | null;
+  session_count: number;
+  current_mode: string | null;
+  last_session_at: string | null;
+}
+
+export interface LearnerProfile {
+  thinking_patterns: Record<string, unknown>;
+  knowledge_graph: Record<string, unknown>;
+  pacing_preferences: Record<string, unknown>;
+  course_progress: Record<string, unknown>;
+  conversation_summary: Array<Record<string, unknown>>;
+  updated_at: string | null;
+}
+
+export interface LearnerDetail {
+  id: string;
+  display_name: string | null;
+  email: string;
+  role: string;
+  created_at: string;
+  enrollments: LearnerEnrollment[];
+  mastery_profile: LearnerProfile | null;
+  stats: {
+    total_sessions: number;
+    total_messages: number;
+    courses_enrolled: number;
+  };
 }
 
 // ─── API Client ──────────────────────────────────────────────────────────────
@@ -163,6 +203,7 @@ export const adminApi = {
 
   // Users
   listUsers: () => authRequest<AdminUser[]>("/api/admin/users"),
+  getLearnerDetail: (userId: string) => authRequest<LearnerDetail>(`/api/admin/users/${userId}/detail`),
   inviteUser: (data: { email: string; role: string }) => authRequest("/api/admin/users/invite", {
     method: "POST",
     body: JSON.stringify(data),
