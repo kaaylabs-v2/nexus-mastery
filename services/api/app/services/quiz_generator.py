@@ -61,9 +61,14 @@ async def generate_quiz(
         context_parts.append(f"DESCRIPTION: {course_description}")
     if topics:
         context_parts.append(f"KEY TOPICS: {', '.join(topics)}")
-    if course_outline:
-        sections = [s.get("title", "") for s in course_outline[:12]]
-        context_parts.append(f"SECTIONS: {', '.join(sections)}")
+    try:
+        if isinstance(course_outline, list):
+            sections = [s.get("title", "") for s in course_outline[:12] if isinstance(s, dict)]
+            sections = [s for s in sections if s]
+            if sections:
+                context_parts.append(f"SECTIONS: {', '.join(sections)}")
+    except (TypeError, AttributeError):
+        pass
 
     context = "\n".join(context_parts)
 

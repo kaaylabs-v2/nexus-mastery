@@ -76,6 +76,7 @@ function groupByCourse(sessions: SessionEntry[]): CourseGroup[] {
 export default function HistoryPage() {
   const [sessions, setSessions] = useState<SessionEntry[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [expandedCourses, setExpandedCourses] = useState<Set<string>>(new Set());
 
   useEffect(() => {
@@ -112,7 +113,7 @@ export default function HistoryPage() {
 
         setSessions(entries);
       })
-      .catch(() => {})
+      .catch(() => setLoadError("Failed to load session history. Please refresh."))
       .finally(() => setLoading(false));
   }, []);
 

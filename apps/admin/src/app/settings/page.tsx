@@ -12,7 +12,6 @@ export default function AdminSettingsPage() {
   const [tab, setTab] = useState<Tab>("general");
   const [name, setName] = useState("");
   const [brandColor, setBrandColor] = useState("#4D9E94");
-  const [ssoEnabled, setSsoEnabled] = useState(false);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
 
@@ -142,42 +141,21 @@ export default function AdminSettingsPage() {
           <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}>
             <div className="rounded-xl border border-border bg-card p-6 space-y-6">
               <div className="flex items-center justify-between">
-                <div>
-                  <h3 className="text-sm font-semibold text-foreground">Single Sign-On (SSO)</h3>
-                  <p className="text-xs text-muted-foreground mt-0.5">Allow users to log in with your identity provider</p>
+                <div className="flex items-center gap-3">
+                  <div>
+                    <h3 className="text-sm font-semibold text-foreground">Single Sign-On (SSO)</h3>
+                    <p className="text-xs text-muted-foreground mt-0.5">Allow users to log in with your identity provider</p>
+                  </div>
+                  <span className="rounded-full bg-muted px-2.5 py-0.5 text-xs font-medium text-muted-foreground">Coming Soon</span>
                 </div>
-                <button onClick={() => setSsoEnabled(!ssoEnabled)}
-                  className={`relative h-6 w-11 rounded-full transition-colors ${ssoEnabled ? "bg-primary" : "bg-muted"}`}>
-                  <span className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform ${ssoEnabled ? "translate-x-5" : "translate-x-0.5"}`} />
+                <button disabled
+                  className="relative h-6 w-11 rounded-full bg-muted opacity-50 cursor-not-allowed">
+                  <span className="absolute top-0.5 h-5 w-5 rounded-full bg-white shadow translate-x-0.5" />
                 </button>
               </div>
-
-              {ssoEnabled && (
-                <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} className="space-y-5 border-t border-border pt-5">
-                  <div>
-                    <label className="text-xs font-medium text-foreground block mb-1.5">Identity Provider</label>
-                    <select className="w-full h-10 rounded-lg border border-border bg-background px-3 text-sm outline-none max-w-xs">
-                      <option>Okta</option>
-                      <option>Azure AD</option>
-                      <option>Google Workspace</option>
-                      <option>OneLogin</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label className="text-xs font-medium text-foreground block mb-1.5">SSO URL (SAML Endpoint)</label>
-                    <input placeholder="https://your-idp.com/sso/saml"
-                      className="w-full h-10 rounded-lg border border-border bg-background px-3 text-sm outline-none focus:ring-1 focus:ring-primary" />
-                  </div>
-                  <div>
-                    <label className="text-xs font-medium text-foreground block mb-1.5">Certificate (X.509)</label>
-                    <textarea className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-xs font-mono min-h-[100px] resize-none outline-none focus:ring-1 focus:ring-primary"
-                      placeholder={"-----BEGIN CERTIFICATE-----\n...\n-----END CERTIFICATE-----"} />
-                  </div>
-                  <p className="text-xs text-muted-foreground bg-muted/50 rounded-lg px-4 py-3">
-                    SSO backend integration coming in a future update. Contact support for enterprise SSO setup.
-                  </p>
-                </motion.div>
-              )}
+              <p className="text-xs text-muted-foreground bg-muted/50 rounded-lg px-4 py-3">
+                SSO integration with Okta, Azure AD, and Google Workspace is planned for a future release. Contact support for enterprise SSO setup.
+              </p>
             </div>
           </motion.div>
         )}

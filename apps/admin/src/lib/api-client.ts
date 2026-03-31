@@ -3,6 +3,12 @@ const DEV_MODE = process.env.NEXT_PUBLIC_USE_MOCK_DATA === "true";
 const DEV_AUTH = process.env.NEXT_PUBLIC_DEV_AUTH === "true";
 const DEV_TOKEN = "dev:auth0|admin-james";
 
+export function buildAssetUrl(path: string | null | undefined): string | null {
+  if (!path) return null;
+  if (path.startsWith("http")) return path;
+  return `${API_BASE}${path}`;
+}
+
 let _cachedToken: string | null = null;
 
 async function getToken(): Promise<string> {
@@ -185,6 +191,7 @@ export const adminApi = {
     body: JSON.stringify({ prompt }),
   }),
   pollIngestion: (jobId: string) => authRequest<IngestionJob>(`/api/admin/ingestion/${jobId}`),
+  generateThumbnail: (courseId: string) => authRequest<{ thumbnail_url: string }>(`/api/courses/${courseId}/generate-thumbnail`, { method: "POST" }),
 
   // Categories
   listCategories: () => authRequest<Array<{ id: string; name: string; current_level: number; target_level: number }>>("/api/categories"),

@@ -45,15 +45,8 @@ export default function CoursesPage() {
   const handleGenerateThumbnail = async (course: Course) => {
     setGeneratingThumb(course.id);
     try {
-      const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
-      const res = await fetch(`${API_BASE}/api/courses/${course.id}/generate-thumbnail`, {
-        method: "POST",
-        headers: { Authorization: `Bearer dev:auth0|admin-james` },
-      });
-      if (res.ok) {
-        const data = await res.json();
-        setCourses((prev) => prev.map((c) => c.id === course.id ? { ...c, thumbnail_url: data.thumbnail_url } : c));
-      }
+      const data = await adminApi.generateThumbnail(course.id);
+      setCourses((prev) => prev.map((c) => c.id === course.id ? { ...c, thumbnail_url: data.thumbnail_url } : c));
     } catch (e) {
       console.error(e);
     }
@@ -216,7 +209,7 @@ export default function CoursesPage() {
           <div className="text-center py-12">
             <GraduationCap className="h-10 w-10 text-muted-foreground/30 mx-auto mb-3" />
             <p className="text-sm text-muted-foreground">
-              {search || statusFilter !== "all" ? "No courses match your filters" : "No courses yet"}
+              {search || statusFilter !== "all" ? "No courses match your filters." : "No courses yet."}
             </p>
             {!search && statusFilter === "all" && (
               <Link href="/upload" className="text-xs text-primary hover:underline mt-1 inline-block">Create your first course</Link>

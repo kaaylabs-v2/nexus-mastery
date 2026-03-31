@@ -81,8 +81,12 @@ const stageInsights: Record<string, { insight: string; prompts: string[] }> = {
 
 function getAutoReadPref(): boolean {
   if (typeof window === "undefined") return true;
-  const val = localStorage.getItem("arena-auto-read");
-  return val === null ? true : val === "true";
+  try {
+    const val = localStorage.getItem("arena-auto-read");
+    return val === null ? true : val === "true";
+  } catch {
+    return true;
+  }
 }
 
 function NexiAvatar() {
@@ -143,11 +147,13 @@ export default function ArenaSessionPage() {
     setIsTranscribing(false);
   }, [sendMessage]);
 
+  const voiceStartRecordingRef = useRef<() => void>(() => {});
+
   const handlePlaybackEnded = useCallback(() => {
     // After Nexi finishes speaking, auto-listen if voice mode is on
     if (voiceModeRef.current) {
       setTimeout(() => {
-        if (voiceModeRef.current) voiceStartRecording();
+        if (voiceModeRef.current) voiceStartRecordingRef.current();
       }, 400); // Small pause before listening again
     }
   }, []);
@@ -156,6 +162,9 @@ export default function ArenaSessionPage() {
     onSilenceDetected: handleVoiceBlob,
     onPlaybackEnded: handlePlaybackEnded,
   });
+
+  // Keep ref updated so handlePlaybackEnded always has the latest function
+  useEffect(() => { voiceStartRecordingRef.current = voiceStartRecording; }, [voiceStartRecording]);
 
   // Connect — create a real conversation for the course, but show quiz first for new sessions
   useEffect(() => {
@@ -255,6 +264,10 @@ export default function ArenaSessionPage() {
     } catch (err) {
       console.error("[TTS] Voice playback failed:", err);
       setPlayingMsgId(null);
+      // Re-activate mic if in voice mode so the loop doesn't die
+      if (voiceModeRef.current) {
+        setTimeout(() => voiceStartRecordingRef.current(), 400);
+      }
     }
   }, [playAudioBuffer]);
 

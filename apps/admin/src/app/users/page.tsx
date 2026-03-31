@@ -258,7 +258,7 @@ export default function AdminUsersPage() {
             <div className="py-12 text-center">
               <Users className="h-10 w-10 text-muted-foreground/30 mx-auto mb-3" />
               <p className="text-sm text-muted-foreground">
-                {search || roleFilter !== "all" ? "No users match your filters" : "No users yet"}
+                {search || roleFilter !== "all" ? "No users match your filters." : "No users yet."}
               </p>
             </div>
           )}

@@ -170,7 +170,7 @@ export default function AdminDashboard() {
                     </div>
                     <div className="flex items-center gap-2 shrink-0">
                       <div className="w-20 h-1.5 rounded-full bg-muted overflow-hidden">
-                        <div className="h-full rounded-full bg-primary transition-all" style={{ width: `${cat.avg_progress}%` }} />
+                        <div className="h-full rounded-full bg-primary transition-all" style={{ width: `${Math.min(100, Math.max(0, cat.avg_progress))}%` }} />
                       </div>
                       <span className="text-xs text-muted-foreground w-8 text-right">{cat.avg_progress}%</span>
                     </div>

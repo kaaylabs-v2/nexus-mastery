@@ -191,22 +191,24 @@ export function useVoice(opts?: {
     audioRef.current = audio;
 
     return new Promise<void>((resolve) => {
-      audio.onplay = () => setIsPlaying(true);
-      audio.onended = () => {
+      let resolved = false;
+      const cleanup = () => {
+        if (resolved) return;
+        resolved = true;
         setIsPlaying(false);
         URL.revokeObjectURL(url);
+        clearTimeout(safetyTimer);
         opts?.onPlaybackEnded?.();
         resolve();
       };
-      audio.onerror = () => {
-        setIsPlaying(false);
-        URL.revokeObjectURL(url);
-        resolve();
-      };
-      audio.play().catch(() => {
-        setIsPlaying(false);
-        resolve();
-      });
+
+      // Safety timeout — force cleanup if playback gets stuck
+      const safetyTimer = setTimeout(cleanup, 60000);
+
+      audio.onplay = () => setIsPlaying(true);
+      audio.onended = cleanup;
+      audio.onerror = cleanup;
+      audio.play().catch(cleanup);
     });
   }, [opts]);
 

@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
-import { Play, BookOpen, GraduationCap, ArrowRight, Sparkles, MessageSquare, Clock, Users, LayoutList, Star } from "lucide-react";
+import { Play, BookOpen, GraduationCap, ArrowRight, Sparkles, MessageSquare, Clock, Users, LayoutList, Star, AlertCircle, X } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useLearner } from "@/contexts/LearnerContext";
@@ -240,11 +240,12 @@ export default function Dashboard() {
   const [activeSessions, setActiveSessions] = useState<ActiveSession[]>([]);
   const [enrolling, setEnrolling] = useState<string | null>(null);
   const [startingSession, setStartingSession] = useState<string | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const router = useRouter();
 
   useEffect(() => {
     if (USE_MOCK) return;
-    apiClient.listMyCourses().then((c) => setEnrolledCourses(c as unknown as CourseData[])).catch(() => {});
+    apiClient.listMyCourses().then((c) => setEnrolledCourses(c as unknown as CourseData[])).catch(() => setLoadError("Failed to load courses. Please refresh."));
     apiClient.listAvailableCourses().then((c) => setAvailableCourses(c as unknown as CourseData[])).catch(() => {});
 
     Promise.all([apiClient.listConversations(), apiClient.listMyCourses()])
@@ -284,7 +285,7 @@ export default function Dashboard() {
           });
         setActiveSessions(inProgress);
       })
-      .catch(() => {});
+      .catch(() => setLoadError("Failed to load sessions. Please refresh."));
   }, []);
 
   const handleStartSession = async (courseId: string) => {
@@ -317,6 +318,16 @@ export default function Dashboard() {
 
   return (
     <div className="px-8 py-8 max-w-6xl mx-auto space-y-10">
+      {loadError && (
+        <div className="rounded-xl border border-destructive/30 bg-destructive/5 px-4 py-3 flex items-center justify-between">
+          <div className="flex items-center gap-2 text-sm text-destructive">
+            <AlertCircle className="h-4 w-4 shrink-0" />
+            {loadError}
+          </div>
+          <button onClick={() => setLoadError(null)} className="text-destructive/60 hover:text-destructive"><X className="h-4 w-4" /></button>
+        </div>
+      )}
+
       {/* Hero greeting */}
       <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
         <h1 className="font-display text-3xl font-bold text-foreground tracking-tight">
