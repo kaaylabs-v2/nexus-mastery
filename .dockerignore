@@ -1,0 +1,38 @@
+# Dependencies
+node_modules
+**/node_modules
+
+# Next.js build output
+**/.next
+**/out
+
+# Python
+services/api/.venv
+**/__pycache__
+**/*.pyc
+services/api/alembic/versions/__pycache__
+
+# Env files — never bake secrets into images
+.env
+**/.env
+**/.env.local
+**/.env.production
+
+# Dev/test artifacts
+**/test-results
+**/.playwright
+**/coverage
+tasks/
+
+# Git
+.git
+.gitignore
+
+# Docker
+**/Dockerfile
+**/.dockerignore
+
+# Editor
+.vscode
+.idea
+**/*.log
