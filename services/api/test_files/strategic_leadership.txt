@@ -1,0 +1,40 @@
+Strategic Decision Making for Product Managers
+
+Chapter 1: Data-Driven Decision Frameworks
+
+Effective product managers use data to inform decisions. Key frameworks:
+
+1. RICE Scoring: Evaluate by Reach, Impact, Confidence, Effort.
+   Reach = users affected. Impact = needle movement (3=massive to 0.25=minimal).
+   Confidence = estimate certainty. Effort = person-months required.
+
+2. Opportunity Solution Trees: Map outcomes to opportunities to solutions.
+   Start with measurable outcome, identify opportunities via user research,
+   brainstorm solutions per opportunity, test assumptions.
+
+3. Cost of Delay: Quantify loss from inaction.
+   Urgent + high value = do first. Not urgent + high value = schedule.
+
+Chapter 2: Stakeholder Alignment
+
+Key techniques for alignment:
+- Pre-alignment: Meet individually before group decisions
+- Shared metrics: Agree on success criteria upfront
+- Decision logs: Document who decided what and why
+- Disagree and commit: Allow dissent but require commitment
+
+Chapter 3: Risk Assessment
+
+Product managers should:
+- Use pre-mortem analysis to identify risks early
+- Categorize risks by likelihood and impact
+- Create mitigation plans for high-likelihood risks
+- Use reversibility as a decision accelerator
+
+Chapter 4: Prioritization Under Uncertainty
+
+When data is incomplete:
+- Use weighted scoring with explicit criteria
+- Run small experiments before committing resources
+- Set kill criteria upfront — when do you stop?
+- Seek disconfirming evidence actively

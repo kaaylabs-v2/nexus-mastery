@@ -1,0 +1,46 @@
+# Dependencies
+node_modules/
+.pnpm-store/
+
+# Build outputs
+.next/
+dist/
+build/
+__pycache__/
+*.pyc
+*.pyo
+
+# Virtual environments
+.venv/
+venv/
+
+# Environment files
+.env
+.env.local
+.env.*.local
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Uploads & generated files
+services/api/uploads/
+services/api/static/thumbnails/
+
+# Test results
+test-results/
+playwright-report/
+
+# Understand Anything plugin & output
+.understand-anything/
+.understand-anything-plugin/
+
+# Misc
+*.log
+.claude/

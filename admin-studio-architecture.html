@@ -1,0 +1,687 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Nexus² Admin Studio — Architecture & Wireframes</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', sans-serif; background: #0a0a0f; color: #e4e4e7; }
+  .header { background: linear-gradient(135deg, #0d1117 0%, #161b22 100%); border-bottom: 1px solid #21262d; padding: 32px 48px; }
+  .header h1 { font-size: 28px; font-weight: 700; color: #fff; }
+  .header .sub { color: #8b949e; font-size: 14px; margin-top: 4px; }
+  .container { max-width: 1400px; margin: 0 auto; padding: 32px 48px; }
+  .section-title { font-size: 20px; font-weight: 600; color: #fff; margin-bottom: 20px; display: flex; align-items: center; gap: 10px; }
+  .section-title .dot { width: 8px; height: 8px; border-radius: 50%; }
+
+  /* Flow Diagram */
+  .flow-section { background: #161b22; border: 1px solid #21262d; border-radius: 12px; padding: 32px; margin-bottom: 40px; }
+  .flow-row { display: flex; align-items: center; gap: 12px; justify-content: center; flex-wrap: wrap; }
+  .flow-box { background: #0d1117; border: 1px solid #30363d; border-radius: 10px; padding: 16px 20px; text-align: center; min-width: 140px; }
+  .flow-box.highlight { border-color: #0d9488; background: rgba(13,148,136,0.08); }
+  .flow-box.ai { border-color: #8b5cf6; background: rgba(139,92,246,0.08); }
+  .flow-box .icon { font-size: 24px; margin-bottom: 6px; }
+  .flow-box .label { font-size: 12px; font-weight: 600; color: #fff; }
+  .flow-box .detail { font-size: 10px; color: #8b949e; margin-top: 3px; }
+  .flow-arrow { color: #4b5563; font-size: 20px; }
+
+  /* Wireframes */
+  .wireframe { background: #ffffff; border-radius: 12px; overflow: hidden; margin-bottom: 32px; }
+  .wf-chrome { background: #f3f4f6; padding: 8px 16px; display: flex; align-items: center; gap: 8px; border-bottom: 1px solid #e5e7eb; }
+  .wf-dot { width: 10px; height: 10px; border-radius: 50%; }
+  .wf-url { background: #fff; border: 1px solid #d1d5db; border-radius: 6px; padding: 4px 12px; font-size: 11px; color: #6b7280; flex: 1; margin-left: 8px; }
+  .wf-body { display: flex; min-height: 500px; }
+  .wf-sidebar { width: 220px; background: #f8f7f5; border-right: 1px solid #e5e7eb; padding: 20px 0; }
+  .wf-sidebar .logo { display: flex; align-items: center; gap: 8px; padding: 0 16px 16px; }
+  .wf-sidebar .logo-icon { width: 28px; height: 28px; background: #0d9488; border-radius: 6px; display: flex; align-items: center; justify-content: center; color: #fff; font-size: 12px; font-weight: 700; }
+  .wf-sidebar .logo-text { font-size: 14px; font-weight: 600; color: #111827; }
+  .wf-sidebar .badge { font-size: 9px; background: #e5e7eb; padding: 1px 6px; border-radius: 8px; color: #6b7280; margin-left: 4px; }
+  .wf-nav-item { display: flex; align-items: center; gap: 10px; padding: 8px 16px; font-size: 13px; color: #4b5563; cursor: default; }
+  .wf-nav-item.active { background: #0d9488; color: #fff; margin: 0 8px; border-radius: 8px; padding: 8px 12px; }
+  .wf-nav-item .nav-icon { width: 16px; text-align: center; font-size: 12px; }
+  .wf-content { flex: 1; padding: 24px 32px; background: #fff; }
+  .wf-content h2 { font-size: 18px; font-weight: 600; color: #111827; margin-bottom: 4px; }
+  .wf-content .subtitle { font-size: 13px; color: #6b7280; margin-bottom: 24px; }
+
+  /* Card styles inside wireframes */
+  .wf-card { background: #fff; border: 1px solid #e5e7eb; border-radius: 10px; padding: 20px; margin-bottom: 16px; }
+  .wf-card.dashed { border-style: dashed; border-color: #d1d5db; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 160px; cursor: default; }
+  .wf-card.dashed:hover { border-color: #0d9488; background: #f0fdfa; }
+  .wf-card h3 { font-size: 14px; font-weight: 600; color: #111827; margin-bottom: 8px; }
+  .wf-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+  .wf-grid-2 { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; }
+  .wf-stat { text-align: center; }
+  .wf-stat .num { font-size: 28px; font-weight: 700; color: #111827; }
+  .wf-stat .label { font-size: 11px; color: #6b7280; margin-top: 2px; }
+  .wf-badge { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 10px; font-weight: 600; }
+  .wf-badge-green { background: #d1fae5; color: #065f46; }
+  .wf-badge-yellow { background: #fef3c7; color: #92400e; }
+  .wf-badge-blue { background: #dbeafe; color: #1e40af; }
+  .wf-badge-gray { background: #f3f4f6; color: #4b5563; }
+  .wf-progress { height: 6px; background: #e5e7eb; border-radius: 3px; overflow: hidden; margin-top: 8px; }
+  .wf-progress-fill { height: 100%; background: #0d9488; border-radius: 3px; }
+  .wf-btn { display: inline-flex; align-items: center; gap: 6px; padding: 8px 16px; border-radius: 8px; font-size: 13px; font-weight: 500; border: none; cursor: default; }
+  .wf-btn-primary { background: #0d9488; color: #fff; }
+  .wf-btn-outline { background: #fff; color: #374151; border: 1px solid #d1d5db; }
+  .wf-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  .wf-table th { text-align: left; padding: 8px 12px; color: #6b7280; font-weight: 500; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; border-bottom: 1px solid #e5e7eb; }
+  .wf-table td { padding: 10px 12px; border-bottom: 1px solid #f3f4f6; color: #374151; }
+  .wf-table tr:hover { background: #f9fafb; }
+
+  /* Upload zone */
+  .upload-zone { border: 2px dashed #d1d5db; border-radius: 12px; padding: 40px; text-align: center; background: #fafafa; }
+  .upload-zone:hover { border-color: #0d9488; background: #f0fdfa; }
+  .upload-zone .icon { font-size: 36px; margin-bottom: 12px; }
+  .upload-zone .text { font-size: 14px; color: #374151; font-weight: 500; }
+  .upload-zone .hint { font-size: 12px; color: #9ca3af; margin-top: 4px; }
+
+  /* Processing steps */
+  .process-steps { display: flex; gap: 16px; margin-top: 20px; }
+  .process-step { flex: 1; background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 8px; padding: 14px; text-align: center; }
+  .process-step.active { border-color: #0d9488; background: #f0fdfa; }
+  .process-step.done { border-color: #10b981; }
+  .process-step .step-num { font-size: 11px; font-weight: 600; color: #6b7280; }
+  .process-step .step-label { font-size: 12px; font-weight: 600; color: #111827; margin-top: 4px; }
+  .process-step .step-detail { font-size: 10px; color: #9ca3af; margin-top: 2px; }
+
+  /* Architecture boxes */
+  .arch-section { background: #161b22; border: 1px solid #21262d; border-radius: 12px; padding: 32px; margin-bottom: 40px; }
+  .arch-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+  .arch-box { background: #0d1117; border: 1px solid #30363d; border-radius: 8px; padding: 16px; }
+  .arch-box h4 { font-size: 13px; font-weight: 600; color: #fff; margin-bottom: 8px; }
+  .arch-box .items { font-size: 11px; color: #8b949e; line-height: 1.8; }
+
+  /* Screen list */
+  .screen-list { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; margin-bottom: 40px; }
+  .screen-item { background: #161b22; border: 1px solid #21262d; border-radius: 10px; padding: 20px; }
+  .screen-item h4 { font-size: 14px; font-weight: 600; color: #fff; margin-bottom: 4px; }
+  .screen-item .desc { font-size: 12px; color: #8b949e; line-height: 1.5; }
+
+  .anno { font-size: 11px; color: #8b949e; font-style: italic; margin-top: 16px; text-align: center; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>Nexus² Admin Studio</h1>
+  <div class="sub">Architecture, Data Flow & Screen Wireframes — Phase 4 Planning</div>
+</div>
+
+<div class="container">
+
+  <!-- ============================================ -->
+  <!-- SECTION 1: UPLOAD → AUTO-GENERATE PIPELINE   -->
+  <!-- ============================================ -->
+  <div class="section-title"><span class="dot" style="background:#0d9488"></span> Upload → Auto-Generate Course Pipeline</div>
+  <div class="flow-section">
+    <div class="flow-row">
+      <div class="flow-box highlight">
+        <div class="icon">📤</div>
+        <div class="label">Admin Uploads</div>
+        <div class="detail">PDF, DOCX, TXT, MD,<br>PPT, CSV, video transcript</div>
+      </div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-box">
+        <div class="icon">📦</div>
+        <div class="label">File Storage</div>
+        <div class="detail">S3 / local storage<br>per-tenant isolated</div>
+      </div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-box ai">
+        <div class="icon">🧠</div>
+        <div class="label">AI Analysis</div>
+        <div class="detail">Claude extracts title,<br>description, topics,<br>mastery criteria</div>
+      </div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-box">
+        <div class="icon">✂️</div>
+        <div class="label">Chunk & Embed</div>
+        <div class="detail">RAG pipeline chunks<br>content, generates<br>1536d embeddings</div>
+      </div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-box highlight">
+        <div class="icon">🎓</div>
+        <div class="label">Course Created</div>
+        <div class="detail">Draft → Review →<br>Publish to learners</div>
+      </div>
+    </div>
+    <div class="anno">The entire pipeline runs as an async ARQ job. Admin sees real-time progress: "Extracting content... Analyzing... Generating course... Done"</div>
+  </div>
+
+  <!-- ============================================ -->
+  <!-- SECTION 2: ADMIN STUDIO SCREENS              -->
+  <!-- ============================================ -->
+  <div class="section-title"><span class="dot" style="background:#3b82f6"></span> Admin Studio Screens</div>
+  <div class="screen-list">
+    <div class="screen-item">
+      <h4>1. Dashboard</h4>
+      <div class="desc">Overview: total learners, active courses, avg mastery score, enrollment trends. Quick actions: upload new course, invite users. Recent activity feed.</div>
+    </div>
+    <div class="screen-item">
+      <h4>2. Course Upload / Creator</h4>
+      <div class="desc">Drag & drop upload zone. Supports PDF, DOCX, TXT, MD, PPT, CSV. Shows real-time processing pipeline (extracting → analyzing → generating → done). AI auto-generates course metadata. Admin reviews and edits before publishing.</div>
+    </div>
+    <div class="screen-item">
+      <h4>3. Courses List</h4>
+      <div class="desc">All courses for this org. Status: draft / active / archived. Shows enrolled learners count, avg mastery level, content sources. Search, filter, sort. Bulk actions.</div>
+    </div>
+    <div class="screen-item">
+      <h4>4. Course Detail / Editor</h4>
+      <div class="desc">Edit course metadata (title, description, mastery criteria). View/manage uploaded materials. See content chunks. Add more materials to existing course. Preview how Nexi will use this content.</div>
+    </div>
+    <div class="screen-item">
+      <h4>5. Users & Enrollment</h4>
+      <div class="desc">All users in this org. Invite via email or SSO sync. Roles: learner / facilitator / org_admin. Bulk enroll into courses. See enrollment status per user (NO mastery profile access — privacy enforced).</div>
+    </div>
+    <div class="screen-item">
+      <h4>6. Analytics</h4>
+      <div class="desc">Org-level aggregate stats only: enrollment completion rates, avg mastery progression, course effectiveness. No individual mastery profiles. Heatmap of active learning times.</div>
+    </div>
+    <div class="screen-item">
+      <h4>7. Org Settings</h4>
+      <div class="desc">Organization name, branding (logo, primary color). SSO/SAML configuration. Plan tier. API keys for integrations. Webhook endpoints. Notification preferences.</div>
+    </div>
+    <div class="screen-item">
+      <h4>8. Invite / Onboarding</h4>
+      <div class="desc">Bulk CSV import of users. Email invitation with org branding. SSO auto-provisioning (SCIM). Welcome message customization.</div>
+    </div>
+  </div>
+
+  <!-- ============================================ -->
+  <!-- WIREFRAME 1: DASHBOARD                       -->
+  <!-- ============================================ -->
+  <div class="section-title"><span class="dot" style="background:#8b5cf6"></span> Wireframe: Admin Dashboard</div>
+  <div class="wireframe">
+    <div class="wf-chrome">
+      <div class="wf-dot" style="background:#ff5f57"></div>
+      <div class="wf-dot" style="background:#febc2e"></div>
+      <div class="wf-dot" style="background:#28c840"></div>
+      <div class="wf-url">admin.nexusmastery.com/dashboard</div>
+    </div>
+    <div class="wf-body">
+      <div class="wf-sidebar">
+        <div class="logo">
+          <div class="logo-icon">N</div>
+          <div class="logo-text">Nexus</div>
+          <span class="badge">ADMIN</span>
+        </div>
+        <div class="wf-nav-item active"><span class="nav-icon">📊</span> Dashboard</div>
+        <div class="wf-nav-item"><span class="nav-icon">📤</span> Upload Course</div>
+        <div class="wf-nav-item"><span class="nav-icon">📚</span> Courses</div>
+        <div class="wf-nav-item"><span class="nav-icon">👥</span> Users</div>
+        <div class="wf-nav-item"><span class="nav-icon">📈</span> Analytics</div>
+        <div class="wf-nav-item"><span class="nav-icon">⚙️</span> Settings</div>
+        <div style="margin-top:auto; padding: 16px; border-top: 1px solid #e5e7eb; margin-top: 200px;">
+          <div style="display:flex; align-items:center; gap:8px;">
+            <div style="width:28px; height:28px; border-radius:50%; background:#e0f2fe; display:flex; align-items:center; justify-content:center; font-size:10px; font-weight:600; color:#0369a1;">AA</div>
+            <div>
+              <div style="font-size:12px; font-weight:500; color:#111827;">Alex Admin</div>
+              <div style="font-size:10px; color:#6b7280;">Acme Corp</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="wf-content">
+        <h2>Dashboard</h2>
+        <div class="subtitle">Overview of your organization's mastery programs</div>
+
+        <!-- Stats Row -->
+        <div class="wf-grid" style="margin-bottom:24px;">
+          <div class="wf-card">
+            <div class="wf-stat">
+              <div class="num">147</div>
+              <div class="label">Active Learners</div>
+            </div>
+          </div>
+          <div class="wf-card">
+            <div class="wf-stat">
+              <div class="num">12</div>
+              <div class="label">Active Courses</div>
+            </div>
+          </div>
+          <div class="wf-card">
+            <div class="wf-stat">
+              <div class="num">3.2</div>
+              <div class="label">Avg Mastery Level</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Quick Actions -->
+        <div style="display:flex; gap:12px; margin-bottom:24px;">
+          <div class="wf-btn wf-btn-primary">📤 Upload New Course</div>
+          <div class="wf-btn wf-btn-outline">👥 Invite Users</div>
+          <div class="wf-btn wf-btn-outline">📊 View Reports</div>
+        </div>
+
+        <!-- Recent Activity -->
+        <div class="wf-card">
+          <h3>Recent Activity</h3>
+          <table class="wf-table">
+            <thead><tr><th>Event</th><th>User</th><th>Course</th><th>Time</th></tr></thead>
+            <tbody>
+              <tr><td><span class="wf-badge wf-badge-green">Enrolled</span></td><td>Maria Chen</td><td>Strategic Decision Making</td><td>2h ago</td></tr>
+              <tr><td><span class="wf-badge wf-badge-blue">Completed</span></td><td>James Lee</td><td>Cross-Functional Alignment</td><td>4h ago</td></tr>
+              <tr><td><span class="wf-badge wf-badge-yellow">Processing</span></td><td>System</td><td>New course upload: leadership.pdf</td><td>5h ago</td></tr>
+              <tr><td><span class="wf-badge wf-badge-green">Enrolled</span></td><td>Sarah Kim</td><td>Evidence-Based Decisions</td><td>1d ago</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================ -->
+  <!-- WIREFRAME 2: COURSE UPLOAD                   -->
+  <!-- ============================================ -->
+  <div class="section-title"><span class="dot" style="background:#f59e0b"></span> Wireframe: Upload → Auto-Generate Course</div>
+  <div class="wireframe">
+    <div class="wf-chrome">
+      <div class="wf-dot" style="background:#ff5f57"></div>
+      <div class="wf-dot" style="background:#febc2e"></div>
+      <div class="wf-dot" style="background:#28c840"></div>
+      <div class="wf-url">admin.nexusmastery.com/courses/upload</div>
+    </div>
+    <div class="wf-body">
+      <div class="wf-sidebar">
+        <div class="logo">
+          <div class="logo-icon">N</div>
+          <div class="logo-text">Nexus</div>
+          <span class="badge">ADMIN</span>
+        </div>
+        <div class="wf-nav-item"><span class="nav-icon">📊</span> Dashboard</div>
+        <div class="wf-nav-item active"><span class="nav-icon">📤</span> Upload Course</div>
+        <div class="wf-nav-item"><span class="nav-icon">📚</span> Courses</div>
+        <div class="wf-nav-item"><span class="nav-icon">👥</span> Users</div>
+        <div class="wf-nav-item"><span class="nav-icon">📈</span> Analytics</div>
+        <div class="wf-nav-item"><span class="nav-icon">⚙️</span> Settings</div>
+      </div>
+      <div class="wf-content">
+        <h2>Create New Course</h2>
+        <div class="subtitle">Upload your materials and we'll generate a complete mastery course</div>
+
+        <!-- Upload Zone -->
+        <div class="upload-zone">
+          <div class="icon">☁️</div>
+          <div class="text">Drop files here or click to browse</div>
+          <div class="hint">Supports PDF, DOCX, PPTX, TXT, MD, CSV — up to 100MB per file</div>
+          <div style="margin-top:16px;">
+            <div class="wf-btn wf-btn-primary">Browse Files</div>
+          </div>
+        </div>
+
+        <!-- Uploaded Files -->
+        <div style="margin-top:20px;">
+          <div style="display:flex; align-items:center; justify-content:space-between; padding:12px 16px; background:#f9fafb; border:1px solid #e5e7eb; border-radius:8px; margin-bottom:8px;">
+            <div style="display:flex; align-items:center; gap:10px;">
+              <span style="font-size:18px;">📄</span>
+              <div>
+                <div style="font-size:13px; font-weight:500; color:#111827;">strategic-leadership-guide.pdf</div>
+                <div style="font-size:11px; color:#6b7280;">4.2 MB · 42 pages</div>
+              </div>
+            </div>
+            <span class="wf-badge wf-badge-green">Uploaded</span>
+          </div>
+          <div style="display:flex; align-items:center; justify-content:space-between; padding:12px 16px; background:#f9fafb; border:1px solid #e5e7eb; border-radius:8px; margin-bottom:8px;">
+            <div style="display:flex; align-items:center; gap:10px;">
+              <span style="font-size:18px;">📊</span>
+              <div>
+                <div style="font-size:13px; font-weight:500; color:#111827;">case-studies-appendix.docx</div>
+                <div style="font-size:11px; color:#6b7280;">1.8 MB · 18 pages</div>
+              </div>
+            </div>
+            <span class="wf-badge wf-badge-green">Uploaded</span>
+          </div>
+        </div>
+
+        <!-- Generate Button -->
+        <div style="margin-top:24px; text-align:center;">
+          <div class="wf-btn wf-btn-primary" style="padding:12px 32px; font-size:15px;">
+            🧠 Generate Course from Materials
+          </div>
+        </div>
+
+        <!-- Processing Pipeline -->
+        <div class="process-steps">
+          <div class="process-step done">
+            <div class="step-num">Step 1</div>
+            <div class="step-label">✓ Extract Content</div>
+            <div class="step-detail">Text extracted from 2 files</div>
+          </div>
+          <div class="process-step done">
+            <div class="step-num">Step 2</div>
+            <div class="step-label">✓ AI Analysis</div>
+            <div class="step-detail">Topics, criteria identified</div>
+          </div>
+          <div class="process-step active">
+            <div class="step-num">Step 3</div>
+            <div class="step-label">⏳ Chunking & Embedding</div>
+            <div class="step-detail">Processing 127 chunks...</div>
+          </div>
+          <div class="process-step">
+            <div class="step-num">Step 4</div>
+            <div class="step-label">Review & Publish</div>
+            <div class="step-detail">Edit before going live</div>
+          </div>
+        </div>
+
+        <!-- AI Generated Preview -->
+        <div class="wf-card" style="margin-top:24px; border-color:#0d9488; border-width:2px;">
+          <div style="display:flex; align-items:center; gap:8px; margin-bottom:12px;">
+            <span style="font-size:16px;">🧠</span>
+            <span style="font-size:12px; font-weight:600; color:#0d9488;">AI-GENERATED COURSE PREVIEW</span>
+          </div>
+          <div style="margin-bottom:16px;">
+            <label style="font-size:11px; color:#6b7280; text-transform:uppercase; letter-spacing:0.5px;">Course Title</label>
+            <div style="font-size:16px; font-weight:600; color:#111827; margin-top:4px; padding:8px 12px; border:1px solid #e5e7eb; border-radius:6px;">Strategic Leadership & Decision Making</div>
+          </div>
+          <div style="margin-bottom:16px;">
+            <label style="font-size:11px; color:#6b7280; text-transform:uppercase; letter-spacing:0.5px;">Description</label>
+            <div style="font-size:13px; color:#374151; margin-top:4px; padding:8px 12px; border:1px solid #e5e7eb; border-radius:6px; line-height:1.5;">Develop strategic thinking capabilities through real-world case studies covering stakeholder alignment, resource allocation under uncertainty, and evidence-based decision frameworks.</div>
+          </div>
+          <div style="margin-bottom:16px;">
+            <label style="font-size:11px; color:#6b7280; text-transform:uppercase; letter-spacing:0.5px;">Mastery Criteria (AI-detected)</label>
+            <div style="display:flex; flex-wrap:wrap; gap:6px; margin-top:8px;">
+              <span class="wf-badge wf-badge-green">Strategic Vision</span>
+              <span class="wf-badge wf-badge-green">Stakeholder Analysis</span>
+              <span class="wf-badge wf-badge-green">Risk Assessment</span>
+              <span class="wf-badge wf-badge-blue">Decision Frameworks</span>
+              <span class="wf-badge wf-badge-blue">Evidence Anchoring</span>
+            </div>
+          </div>
+          <div style="display:flex; gap:12px; margin-top:20px;">
+            <div class="wf-btn wf-btn-primary">✓ Publish Course</div>
+            <div class="wf-btn wf-btn-outline">Edit Details</div>
+            <div class="wf-btn wf-btn-outline">Save as Draft</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================ -->
+  <!-- WIREFRAME 3: COURSES LIST                    -->
+  <!-- ============================================ -->
+  <div class="section-title"><span class="dot" style="background:#14b8a6"></span> Wireframe: Courses List</div>
+  <div class="wireframe">
+    <div class="wf-chrome">
+      <div class="wf-dot" style="background:#ff5f57"></div>
+      <div class="wf-dot" style="background:#febc2e"></div>
+      <div class="wf-dot" style="background:#28c840"></div>
+      <div class="wf-url">admin.nexusmastery.com/courses</div>
+    </div>
+    <div class="wf-body">
+      <div class="wf-sidebar">
+        <div class="logo">
+          <div class="logo-icon">N</div>
+          <div class="logo-text">Nexus</div>
+          <span class="badge">ADMIN</span>
+        </div>
+        <div class="wf-nav-item"><span class="nav-icon">📊</span> Dashboard</div>
+        <div class="wf-nav-item"><span class="nav-icon">📤</span> Upload Course</div>
+        <div class="wf-nav-item active"><span class="nav-icon">📚</span> Courses</div>
+        <div class="wf-nav-item"><span class="nav-icon">👥</span> Users</div>
+        <div class="wf-nav-item"><span class="nav-icon">📈</span> Analytics</div>
+        <div class="wf-nav-item"><span class="nav-icon">⚙️</span> Settings</div>
+      </div>
+      <div class="wf-content">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:24px;">
+          <div>
+            <h2>Courses</h2>
+            <div class="subtitle">12 courses in your organization</div>
+          </div>
+          <div class="wf-btn wf-btn-primary">+ Upload New Course</div>
+        </div>
+
+        <!-- Filter Bar -->
+        <div style="display:flex; gap:8px; margin-bottom:16px;">
+          <div class="wf-btn wf-btn-outline" style="font-size:12px; padding:6px 12px;">All (12)</div>
+          <div class="wf-btn wf-btn-outline" style="font-size:12px; padding:6px 12px; border-color:#10b981; color:#10b981;">Active (8)</div>
+          <div class="wf-btn wf-btn-outline" style="font-size:12px; padding:6px 12px;">Draft (3)</div>
+          <div class="wf-btn wf-btn-outline" style="font-size:12px; padding:6px 12px;">Archived (1)</div>
+          <div style="flex:1;"></div>
+          <input type="text" placeholder="Search courses..." style="padding:6px 12px; border:1px solid #d1d5db; border-radius:6px; font-size:12px; width:200px; outline:none;">
+        </div>
+
+        <!-- Course Cards -->
+        <div class="wf-card">
+          <div style="display:flex; justify-content:space-between; align-items:start;">
+            <div>
+              <h3 style="margin-bottom:4px;">Strategic Decision Making</h3>
+              <div style="font-size:12px; color:#6b7280; margin-bottom:8px;">Master the frameworks and mental models needed for high-stakes strategic decisions.</div>
+              <div style="display:flex; gap:6px;">
+                <span class="wf-badge wf-badge-green">Active</span>
+                <span class="wf-badge wf-badge-gray">42 enrolled</span>
+                <span class="wf-badge wf-badge-gray">3 materials</span>
+              </div>
+            </div>
+            <div style="text-align:right;">
+              <div style="font-size:22px; font-weight:700; color:#111827;">2.8</div>
+              <div style="font-size:10px; color:#6b7280;">Avg Mastery</div>
+            </div>
+          </div>
+          <div class="wf-progress"><div class="wf-progress-fill" style="width:68%"></div></div>
+          <div style="font-size:10px; color:#6b7280; margin-top:4px;">68% enrollment completion</div>
+        </div>
+
+        <div class="wf-card">
+          <div style="display:flex; justify-content:space-between; align-items:start;">
+            <div>
+              <h3 style="margin-bottom:4px;">Cross-Functional Stakeholder Alignment</h3>
+              <div style="font-size:12px; color:#6b7280; margin-bottom:8px;">Build alignment across engineering, design, and business stakeholders.</div>
+              <div style="display:flex; gap:6px;">
+                <span class="wf-badge wf-badge-green">Active</span>
+                <span class="wf-badge wf-badge-gray">38 enrolled</span>
+                <span class="wf-badge wf-badge-gray">5 materials</span>
+              </div>
+            </div>
+            <div style="text-align:right;">
+              <div style="font-size:22px; font-weight:700; color:#111827;">3.1</div>
+              <div style="font-size:10px; color:#6b7280;">Avg Mastery</div>
+            </div>
+          </div>
+          <div class="wf-progress"><div class="wf-progress-fill" style="width:82%"></div></div>
+          <div style="font-size:10px; color:#6b7280; margin-top:4px;">82% enrollment completion</div>
+        </div>
+
+        <div class="wf-card" style="opacity:0.7;">
+          <div style="display:flex; justify-content:space-between; align-items:start;">
+            <div>
+              <h3 style="margin-bottom:4px;">Strategic Leadership & Decision Making</h3>
+              <div style="font-size:12px; color:#6b7280; margin-bottom:8px;">Develop strategic thinking capabilities through real-world case studies.</div>
+              <div style="display:flex; gap:6px;">
+                <span class="wf-badge wf-badge-yellow">Draft</span>
+                <span class="wf-badge wf-badge-gray">0 enrolled</span>
+                <span class="wf-badge wf-badge-gray">2 materials</span>
+              </div>
+            </div>
+            <div style="text-align:right;">
+              <div class="wf-btn wf-btn-outline" style="font-size:11px; padding:4px 10px;">Publish</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================ -->
+  <!-- WIREFRAME 4: USERS & ENROLLMENT              -->
+  <!-- ============================================ -->
+  <div class="section-title"><span class="dot" style="background:#60a5fa"></span> Wireframe: Users & Enrollment</div>
+  <div class="wireframe">
+    <div class="wf-chrome">
+      <div class="wf-dot" style="background:#ff5f57"></div>
+      <div class="wf-dot" style="background:#febc2e"></div>
+      <div class="wf-dot" style="background:#28c840"></div>
+      <div class="wf-url">admin.nexusmastery.com/users</div>
+    </div>
+    <div class="wf-body">
+      <div class="wf-sidebar">
+        <div class="logo">
+          <div class="logo-icon">N</div>
+          <div class="logo-text">Nexus</div>
+          <span class="badge">ADMIN</span>
+        </div>
+        <div class="wf-nav-item"><span class="nav-icon">📊</span> Dashboard</div>
+        <div class="wf-nav-item"><span class="nav-icon">📤</span> Upload Course</div>
+        <div class="wf-nav-item"><span class="nav-icon">📚</span> Courses</div>
+        <div class="wf-nav-item active"><span class="nav-icon">👥</span> Users</div>
+        <div class="wf-nav-item"><span class="nav-icon">📈</span> Analytics</div>
+        <div class="wf-nav-item"><span class="nav-icon">⚙️</span> Settings</div>
+      </div>
+      <div class="wf-content">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:24px;">
+          <div>
+            <h2>Users</h2>
+            <div class="subtitle">147 users in Acme Corp</div>
+          </div>
+          <div style="display:flex; gap:8px;">
+            <div class="wf-btn wf-btn-outline">📥 Import CSV</div>
+            <div class="wf-btn wf-btn-primary">+ Invite User</div>
+          </div>
+        </div>
+
+        <div class="wf-card">
+          <table class="wf-table">
+            <thead>
+              <tr><th>User</th><th>Role</th><th>Enrolled Courses</th><th>Status</th><th>Joined</th></tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><div style="display:flex;align-items:center;gap:8px;"><div style="width:28px;height:28px;border-radius:50%;background:#ccfbf1;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:600;color:#0d9488;">MC</div><div><div style="font-weight:500;">Maria Chen</div><div style="font-size:11px;color:#6b7280;">maria.chen@acme.com</div></div></div></td>
+                <td><span class="wf-badge wf-badge-blue">Learner</span></td>
+                <td>3 courses</td>
+                <td><span class="wf-badge wf-badge-green">Active</span></td>
+                <td style="color:#6b7280;">Feb 1, 2026</td>
+              </tr>
+              <tr>
+                <td><div style="display:flex;align-items:center;gap:8px;"><div style="width:28px;height:28px;border-radius:50%;background:#dbeafe;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:600;color:#1e40af;">JL</div><div><div style="font-weight:500;">James Lee</div><div style="font-size:11px;color:#6b7280;">james.lee@acme.com</div></div></div></td>
+                <td><span class="wf-badge wf-badge-blue">Learner</span></td>
+                <td>2 courses</td>
+                <td><span class="wf-badge wf-badge-green">Active</span></td>
+                <td style="color:#6b7280;">Feb 5, 2026</td>
+              </tr>
+              <tr>
+                <td><div style="display:flex;align-items:center;gap:8px;"><div style="width:28px;height:28px;border-radius:50%;background:#fef3c7;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:600;color:#92400e;">SK</div><div><div style="font-weight:500;">Sarah Kim</div><div style="font-size:11px;color:#6b7280;">sarah.kim@acme.com</div></div></div></td>
+                <td><span class="wf-badge wf-badge-gray">Facilitator</span></td>
+                <td>—</td>
+                <td><span class="wf-badge wf-badge-green">Active</span></td>
+                <td style="color:#6b7280;">Jan 20, 2026</td>
+              </tr>
+              <tr>
+                <td><div style="display:flex;align-items:center;gap:8px;"><div style="width:28px;height:28px;border-radius:50%;background:#e0e7ff;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:600;color:#3730a3;">RP</div><div><div style="font-weight:500;">Raj Patel</div><div style="font-size:11px;color:#6b7280;">raj.patel@acme.com</div></div></div></td>
+                <td><span class="wf-badge wf-badge-blue">Learner</span></td>
+                <td>1 course</td>
+                <td><span class="wf-badge wf-badge-yellow">Pending Invite</span></td>
+                <td style="color:#6b7280;">—</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Privacy Notice -->
+        <div style="display:flex; align-items:center; gap:8px; padding:12px 16px; background:#f0fdf4; border:1px solid #bbf7d0; border-radius:8px; margin-top:16px;">
+          <span>🔒</span>
+          <span style="font-size:12px; color:#166534;">Mastery profiles are private. You can see enrollment status and course completion, but individual thinking patterns and mastery details are visible only to the learner.</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================ -->
+  <!-- ARCHITECTURE: NEW BACKEND REQUIREMENTS       -->
+  <!-- ============================================ -->
+  <div class="section-title"><span class="dot" style="background:#ef4444"></span> New Backend Requirements</div>
+  <div class="arch-section">
+    <div class="arch-grid">
+      <div class="arch-box">
+        <h4>New API Routes</h4>
+        <div class="items">
+          POST /api/admin/courses/upload<br>
+          POST /api/admin/courses/generate<br>
+          GET /api/admin/courses<br>
+          PATCH /api/admin/courses/{id}<br>
+          POST /api/admin/courses/{id}/publish<br>
+          GET /api/admin/users<br>
+          POST /api/admin/users/invite<br>
+          POST /api/admin/users/bulk-import<br>
+          POST /api/admin/users/enroll<br>
+          GET /api/admin/analytics/overview<br>
+          GET /api/admin/analytics/courses/{id}<br>
+          PATCH /api/admin/org/settings
+        </div>
+      </div>
+      <div class="arch-box">
+        <h4>New Services</h4>
+        <div class="items">
+          course_generator.py<br>
+          — AI analysis (Claude) to extract<br>
+          &nbsp;&nbsp;title, description, mastery criteria<br>
+          — Topic detection from content<br>
+          <br>
+          file_storage.py<br>
+          — S3 or local file storage<br>
+          — Per-tenant path isolation<br>
+          — File type detection & validation<br>
+          <br>
+          ingestion_worker.py (ARQ)<br>
+          — Async pipeline orchestration<br>
+          — Progress tracking via Redis<br>
+          — Status: extracting → analyzing<br>
+          &nbsp;&nbsp;→ chunking → embedding → done
+        </div>
+      </div>
+      <div class="arch-box">
+        <h4>New/Modified Models</h4>
+        <div class="items">
+          CourseFile (NEW)<br>
+          — id, course_id, org_id<br>
+          — filename, file_type, file_size<br>
+          — storage_path, upload_status<br>
+          — uploaded_by, uploaded_at<br>
+          <br>
+          IngestionJob (NEW)<br>
+          — id, course_id, status<br>
+          — progress_pct, step_name<br>
+          — chunks_total, chunks_done<br>
+          — error_message, created_at<br>
+          <br>
+          Course (MODIFIED)<br>
+          — add: source_type (uploaded/manual)<br>
+          — add: ai_generated_metadata (JSONB)<br>
+          — add: published_at (nullable)
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Multi-tenancy enforcement -->
+  <div class="section-title"><span class="dot" style="background:#f59e0b"></span> Multi-Tenancy Enforcement</div>
+  <div style="background:#161b22; border:1px solid #21262d; border-radius:12px; padding:24px; margin-bottom:40px;">
+    <div style="display:grid; grid-template-columns:repeat(2,1fr); gap:16px;">
+      <div style="background:#0d1117; border:1px solid #30363d; border-radius:8px; padding:16px;">
+        <div style="font-size:13px; font-weight:600; color:#fff; margin-bottom:8px;">Data Isolation</div>
+        <div style="font-size:12px; color:#8b949e; line-height:1.7;">
+          • Every query filters by org_id from JWT token<br>
+          • File storage paths: /uploads/{org_id}/{course_id}/<br>
+          • Embeddings scoped by course_id → org_id<br>
+          • RAG retrieval only pulls from tenant's courses<br>
+          • No cross-tenant data access possible at DB layer
+        </div>
+      </div>
+      <div style="background:#0d1117; border:1px solid #30363d; border-radius:8px; padding:16px;">
+        <div style="font-size:13px; font-weight:600; color:#fff; margin-bottom:8px;">Privacy Boundaries</div>
+        <div style="font-size:12px; color:#8b949e; line-height:1.7;">
+          • Admin sees: enrollment status, completion %, course stats<br>
+          • Admin CANNOT see: thinking_patterns, knowledge_graph, conversation_summary, pacing_preferences<br>
+          • Analytics are aggregates only — no individual profiles<br>
+          • Enforced at API layer AND at DB query level<br>
+          • Privacy tests extended for admin routes
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+</body>
+</html>

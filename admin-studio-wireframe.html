@@ -1,0 +1,1817 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nexus² Admin Studio</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        /* === CSS VARIABLES (Nexus² Arena Design System) === */
+        :root {
+            --background: hsl(40, 20%, 98%);
+            --foreground: hsl(220, 15%, 12%);
+            --card: hsl(0, 0%, 100%);
+            --card-foreground: hsl(220, 15%, 12%);
+            --primary: hsl(174, 42%, 40%);
+            --primary-foreground: hsl(0, 0%, 100%);
+            --secondary: hsl(40, 15%, 94%);
+            --secondary-foreground: hsl(220, 15%, 20%);
+            --accent: hsl(174, 30%, 94%);
+            --accent-foreground: hsl(174, 42%, 28%);
+            --muted: hsl(40, 12%, 93%);
+            --muted-foreground: hsl(220, 10%, 46%);
+            --border: hsl(40, 12%, 90%);
+            --input: hsl(40, 12%, 88%);
+            --ring: hsl(174, 42%, 40%);
+            --surface: hsl(40, 15%, 96%);
+            --surface-foreground: hsl(220, 15%, 20%);
+            --destructive: hsl(0, 72%, 55%);
+            --success: hsl(152, 55%, 42%);
+            --warning: hsl(38, 92%, 50%);
+            --info: hsl(210, 70%, 55%);
+
+            --sidebar-background: hsl(0, 0%, 100%);
+            --sidebar-foreground: hsl(220, 10%, 40%);
+            --sidebar-primary: hsl(174, 42%, 40%);
+            --sidebar-primary-foreground: hsl(0, 0%, 100%);
+            --sidebar-accent: hsl(174, 30%, 94%);
+            --sidebar-accent-foreground: hsl(174, 42%, 28%);
+            --sidebar-border: hsl(40, 12%, 92%);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html, body {
+            height: 100%;
+            width: 100%;
+        }
+
+        body {
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
+            background: var(--background);
+            color: var(--foreground);
+            overflow: hidden;
+        }
+
+        h1, h2, h3, h4, h5, h6 {
+            font-family: 'DM Sans', system-ui, -apple-system, sans-serif;
+            font-weight: 600;
+        }
+
+        /* === MAC BROWSER CHROME === */
+        .browser-chrome {
+            background: #f5f5f5;
+            border-bottom: 1px solid #e5e5e5;
+            padding: 12px 16px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            height: 56px;
+            flex-shrink: 0;
+        }
+
+        .browser-dots {
+            display: flex;
+            gap: 8px;
+        }
+
+        .browser-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+        }
+
+        .browser-dot.red { background: #ff5f56; }
+        .browser-dot.yellow { background: #ffbd2e; }
+        .browser-dot.green { background: #27c93f; }
+
+        .browser-url {
+            flex: 1;
+            background: #efefef;
+            border-radius: 6px;
+            padding: 6px 12px;
+            font-size: 11px;
+            color: #666;
+            margin-left: 12px;
+            font-family: 'Menlo', monospace;
+        }
+
+        /* === MAIN LAYOUT === */
+        .main-container {
+            display: flex;
+            height: calc(100vh - 56px);
+            overflow: hidden;
+        }
+
+        /* === SIDEBAR === */
+        .sidebar {
+            width: 260px;
+            background: var(--sidebar-background);
+            border-right: 1px solid var(--sidebar-border);
+            display: flex;
+            flex-direction: column;
+            overflow-y: auto;
+        }
+
+        .sidebar-header {
+            padding: 24px 16px;
+            border-bottom: 1px solid var(--sidebar-border);
+        }
+
+        .logo-container {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 8px;
+        }
+
+        .logo-box {
+            width: 36px;
+            height: 36px;
+            background: var(--primary);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 18px;
+            color: var(--primary-foreground);
+        }
+
+        .logo-text {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+
+        .logo-text strong {
+            font-size: 14px;
+            font-weight: 700;
+            color: var(--sidebar-foreground);
+        }
+
+        .logo-badge {
+            font-size: 9px;
+            font-weight: 700;
+            color: var(--muted-foreground);
+            letter-spacing: 0.5px;
+        }
+
+        .sidebar-nav {
+            flex: 1;
+            padding: 16px 8px;
+            overflow-y: auto;
+        }
+
+        .nav-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 10px 12px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            color: var(--sidebar-foreground);
+            transition: all 0.2s ease;
+            margin-bottom: 4px;
+        }
+
+        .nav-item:hover {
+            background: var(--sidebar-accent);
+            color: var(--sidebar-accent-foreground);
+        }
+
+        .nav-item.active {
+            background: var(--sidebar-accent);
+            color: var(--sidebar-accent-foreground);
+            font-weight: 600;
+        }
+
+        .nav-icon {
+            font-size: 16px;
+        }
+
+        .sidebar-footer {
+            padding: 16px;
+            border-top: 1px solid var(--sidebar-border);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .avatar {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            background: var(--primary);
+            color: var(--primary-foreground);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 14px;
+        }
+
+        .user-info {
+            flex: 1;
+        }
+
+        .user-info-name {
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--sidebar-foreground);
+        }
+
+        .user-info-email {
+            font-size: 11px;
+            color: var(--muted-foreground);
+        }
+
+        /* === MAIN CONTENT === */
+        .content-area {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .content-scroll {
+            flex: 1;
+            overflow-y: auto;
+            padding: 32px;
+        }
+
+        .screen {
+            display: none;
+            animation: fadeIn 0.4s ease-out;
+        }
+
+        .screen.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(8px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* === TYPOGRAPHY === */
+        .page-title {
+            font-size: 28px;
+            font-weight: 700;
+            color: var(--foreground);
+            margin-bottom: 8px;
+        }
+
+        .page-subtitle {
+            font-size: 14px;
+            color: var(--muted-foreground);
+            margin-bottom: 32px;
+        }
+
+        /* === BUTTONS === */
+        .button {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            height: 40px;
+            padding: 0 16px;
+            border-radius: 10px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            border: none;
+        }
+
+        .button-primary {
+            background: var(--primary);
+            color: var(--primary-foreground);
+        }
+
+        .button-primary:hover {
+            background: hsl(174, 42%, 35%);
+        }
+
+        .button-primary:focus {
+            outline: none;
+            ring: 2px;
+            ring-color: var(--ring);
+        }
+
+        .button-outline {
+            background: var(--card);
+            color: var(--foreground);
+            border: 1px solid var(--border);
+        }
+
+        .button-outline:hover {
+            background: var(--surface);
+        }
+
+        .button-destructive {
+            background: var(--destructive);
+            color: white;
+        }
+
+        .button-destructive:hover {
+            background: hsl(0, 72%, 48%);
+        }
+
+        .button-sm {
+            height: 32px;
+            padding: 0 12px;
+            font-size: 12px;
+        }
+
+        /* === CARDS === */
+        .card {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 24px;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+        }
+
+        .card-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--card-foreground);
+            margin-bottom: 4px;
+        }
+
+        .card-subtitle {
+            font-size: 13px;
+            color: var(--muted-foreground);
+            margin-bottom: 16px;
+        }
+
+        /* === STAT CARDS === */
+        .stat-cards {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 16px;
+            margin-bottom: 32px;
+        }
+
+        .stat-card {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 24px;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+        }
+
+        .stat-value {
+            font-size: 32px;
+            font-weight: 700;
+            color: var(--primary);
+            margin-bottom: 8px;
+        }
+
+        .stat-label {
+            font-size: 13px;
+            color: var(--muted-foreground);
+            margin-bottom: 12px;
+        }
+
+        .stat-trend {
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--success);
+        }
+
+        /* === BADGES === */
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            border-radius: 9999px;
+            padding: 4px 10px;
+            font-size: 11px;
+            font-weight: 600;
+        }
+
+        .badge-success {
+            background: hsl(152, 55%, 92%);
+            color: var(--success);
+        }
+
+        .badge-warning {
+            background: hsl(38, 92%, 92%);
+            color: var(--warning);
+        }
+
+        .badge-info {
+            background: hsl(210, 70%, 92%);
+            color: var(--info);
+        }
+
+        .badge-primary {
+            background: var(--accent);
+            color: var(--accent-foreground);
+        }
+
+        .badge-outline {
+            background: transparent;
+            border: 1px solid var(--border);
+            color: var(--foreground);
+        }
+
+        /* === INPUTS & FORMS === */
+        .input {
+            height: 40px;
+            padding: 0 12px;
+            border: 1px solid var(--input);
+            border-radius: 10px;
+            background: var(--card);
+            color: var(--foreground);
+            font-size: 14px;
+            font-family: inherit;
+            transition: all 0.2s ease;
+        }
+
+        .input:focus {
+            outline: none;
+            border-color: var(--ring);
+            box-shadow: 0 0 0 3px rgba(174, 204, 188, 0.2);
+        }
+
+        .textarea {
+            padding: 12px;
+            border: 1px solid var(--input);
+            border-radius: 10px;
+            background: var(--card);
+            color: var(--foreground);
+            font-size: 14px;
+            font-family: inherit;
+            resize: vertical;
+            min-height: 100px;
+        }
+
+        .textarea:focus {
+            outline: none;
+            border-color: var(--ring);
+            box-shadow: 0 0 0 3px rgba(174, 204, 188, 0.2);
+        }
+
+        /* === UPLOAD ZONE === */
+        .upload-zone {
+            border: 2px dashed var(--border);
+            border-radius: 12px;
+            padding: 48px 24px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            background: var(--card);
+        }
+
+        .upload-zone:hover {
+            border-color: var(--primary);
+            background: var(--accent);
+        }
+
+        .upload-icon {
+            font-size: 48px;
+            margin-bottom: 16px;
+        }
+
+        .upload-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--foreground);
+            margin-bottom: 8px;
+        }
+
+        .upload-subtitle {
+            font-size: 13px;
+            color: var(--muted-foreground);
+        }
+
+        /* === FILE LIST === */
+        .file-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px;
+            background: var(--surface);
+            border-radius: 10px;
+            margin-bottom: 8px;
+            justify-content: space-between;
+        }
+
+        .file-info {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex: 1;
+        }
+
+        .file-icon {
+            font-size: 20px;
+        }
+
+        .file-details {
+            flex: 1;
+        }
+
+        .file-name {
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--foreground);
+        }
+
+        .file-size {
+            font-size: 12px;
+            color: var(--muted-foreground);
+        }
+
+        .file-actions {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+
+        /* === PROCESS PIPELINE === */
+        .pipeline {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 16px;
+            margin: 32px 0;
+        }
+
+        .pipeline-step {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .step-card {
+            background: var(--card);
+            border: 2px solid var(--border);
+            border-radius: 12px;
+            padding: 20px;
+            text-align: center;
+            transition: all 0.3s ease;
+        }
+
+        .step-card.done {
+            border-color: var(--success);
+            background: hsl(152, 55%, 98%);
+        }
+
+        .step-card.active {
+            border-color: var(--primary);
+            background: hsl(174, 42%, 98%);
+            animation: glow 2s ease-in-out infinite;
+        }
+
+        .step-card.pending {
+            border-color: var(--border);
+            background: var(--muted);
+        }
+
+        @keyframes glow {
+            0%, 100% {
+                box-shadow: 0 0 0 0 rgba(174, 204, 188, 0.4);
+            }
+            50% {
+                box-shadow: 0 0 0 8px rgba(174, 204, 188, 0);
+            }
+        }
+
+        .step-icon {
+            font-size: 28px;
+            margin-bottom: 8px;
+        }
+
+        .step-title {
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--foreground);
+        }
+
+        /* === COURSE PREVIEW === */
+        .preview-card {
+            background: var(--card);
+            border: 2px solid var(--primary);
+            border-radius: 12px;
+            padding: 24px;
+        }
+
+        .preview-label {
+            font-size: 10px;
+            font-weight: 700;
+            letter-spacing: 0.5px;
+            color: var(--primary);
+            margin-bottom: 12px;
+            text-transform: uppercase;
+        }
+
+        .preview-title {
+            font-size: 18px;
+            font-weight: 700;
+            color: var(--foreground);
+            margin-bottom: 16px;
+        }
+
+        .mastery-badges {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-bottom: 20px;
+        }
+
+        /* === TABS === */
+        .tab-group {
+            display: flex;
+            gap: 0;
+            border-bottom: 1px solid var(--border);
+            margin-bottom: 24px;
+        }
+
+        .tab {
+            padding: 12px 16px;
+            font-size: 14px;
+            font-weight: 500;
+            color: var(--muted-foreground);
+            cursor: pointer;
+            border: none;
+            background: none;
+            border-bottom: 2px solid transparent;
+            transition: all 0.2s ease;
+        }
+
+        .tab:hover {
+            color: var(--foreground);
+        }
+
+        .tab.active {
+            color: var(--primary);
+            border-bottom-color: var(--primary);
+        }
+
+        /* === FILTER TABS === */
+        .filter-tabs {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 24px;
+        }
+
+        .filter-pill {
+            padding: 8px 16px;
+            border-radius: 9999px;
+            border: 1px solid var(--border);
+            background: var(--card);
+            color: var(--foreground);
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .filter-pill:hover {
+            border-color: var(--primary);
+            color: var(--primary);
+        }
+
+        .filter-pill.active {
+            background: var(--primary);
+            color: var(--primary-foreground);
+            border-color: var(--primary);
+        }
+
+        /* === GRID & LAYOUT === */
+        .flex-row {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+
+        .flex-spacer {
+            flex: 1;
+        }
+
+        .grid-2 {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 24px;
+        }
+
+        .grid-3 {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 24px;
+        }
+
+        /* === TABLES === */
+        .table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .table th {
+            background: var(--surface);
+            padding: 12px;
+            text-align: left;
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--muted-foreground);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .table td {
+            padding: 12px;
+            border-bottom: 1px solid var(--border);
+            font-size: 13px;
+            color: var(--foreground);
+        }
+
+        .table tbody tr:hover {
+            background: var(--surface);
+        }
+
+        /* === PROGRESS BAR === */
+        .progress-bar {
+            height: 6px;
+            background: var(--muted);
+            border-radius: 9999px;
+            overflow: hidden;
+            margin-top: 8px;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: var(--primary);
+            border-radius: 9999px;
+            transition: width 0.3s ease;
+        }
+
+        /* === UTILITY === */
+        .mt-8 { margin-top: 32px; }
+        .mt-6 { margin-top: 24px; }
+        .mt-4 { margin-top: 16px; }
+        .mb-4 { margin-bottom: 16px; }
+        .mb-6 { margin-bottom: 24px; }
+        .gap-4 { gap: 16px; }
+        .gap-2 { gap: 8px; }
+
+        .text-center { text-align: center; }
+        .text-sm { font-size: 13px; }
+        .text-xs { font-size: 11px; }
+        .font-semibold { font-weight: 600; }
+        .font-bold { font-weight: 700; }
+
+        /* === NOTIFICATION/PRIVACY NOTICE === */
+        .privacy-notice {
+            background: hsl(152, 55%, 92%);
+            border: 1px solid hsl(152, 55%, 80%);
+            border-radius: 10px;
+            padding: 16px;
+            margin-top: 24px;
+            display: flex;
+            gap: 12px;
+            align-items: flex-start;
+        }
+
+        .privacy-notice-icon {
+            font-size: 18px;
+            flex-shrink: 0;
+            margin-top: 2px;
+        }
+
+        .privacy-notice-text {
+            font-size: 13px;
+            color: hsl(152, 55%, 28%);
+            line-height: 1.5;
+        }
+
+        /* === SECTION === */
+        .section {
+            margin-bottom: 32px;
+        }
+
+        .section-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--foreground);
+            margin-bottom: 16px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-label {
+            display: block;
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--foreground);
+            margin-bottom: 8px;
+        }
+
+        /* === BREADCRUMB === */
+        .breadcrumb {
+            display: flex;
+            gap: 8px;
+            font-size: 13px;
+            color: var(--muted-foreground);
+            margin-bottom: 24px;
+        }
+
+        .breadcrumb-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .breadcrumb-separator {
+            color: var(--border);
+        }
+
+        /* === HEADER ROW === */
+        .header-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 24px;
+        }
+
+        .header-left {
+            flex: 1;
+        }
+
+        .header-right {
+            display: flex;
+            gap: 12px;
+        }
+
+        /* === SCROLLBAR === */
+        .sidebar::-webkit-scrollbar,
+        .content-scroll::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .sidebar::-webkit-scrollbar-track,
+        .content-scroll::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        .sidebar::-webkit-scrollbar-thumb,
+        .content-scroll::-webkit-scrollbar-thumb {
+            background: var(--border);
+            border-radius: 4px;
+        }
+
+        .sidebar::-webkit-scrollbar-thumb:hover,
+        .content-scroll::-webkit-scrollbar-thumb:hover {
+            background: var(--muted-foreground);
+        }
+    </style>
+</head>
+<body>
+    <!-- Mac Browser Chrome -->
+    <div class="browser-chrome">
+        <div class="browser-dots">
+            <div class="browser-dot red"></div>
+            <div class="browser-dot yellow"></div>
+            <div class="browser-dot green"></div>
+        </div>
+        <div class="browser-url" id="url-bar">admin.nexusmastery.io/dashboard</div>
+    </div>
+
+    <div class="main-container">
+        <!-- SIDEBAR -->
+        <div class="sidebar">
+            <div class="sidebar-header">
+                <div class="logo-container">
+                    <div class="logo-box">N</div>
+                    <div class="logo-text">
+                        <strong>Nexus²</strong>
+                        <span class="logo-badge">ADMIN</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="sidebar-nav">
+                <div class="nav-item active" data-screen="dashboard" onclick="switchScreen('dashboard')">
+                    <span class="nav-icon">📊</span>
+                    <span>Dashboard</span>
+                </div>
+                <div class="nav-item" data-screen="upload" onclick="switchScreen('upload')">
+                    <span class="nav-icon">📤</span>
+                    <span>Upload Course</span>
+                </div>
+                <div class="nav-item" data-screen="courses" onclick="switchScreen('courses')">
+                    <span class="nav-icon">📚</span>
+                    <span>Courses</span>
+                </div>
+                <div class="nav-item" data-screen="course-detail" onclick="switchScreen('course-detail')">
+                    <span class="nav-icon">✏️</span>
+                    <span>Course Detail</span>
+                </div>
+                <div class="nav-item" data-screen="users" onclick="switchScreen('users')">
+                    <span class="nav-icon">👥</span>
+                    <span>Users</span>
+                </div>
+                <div class="nav-item" data-screen="analytics" onclick="switchScreen('analytics')">
+                    <span class="nav-icon">📈</span>
+                    <span>Analytics</span>
+                </div>
+                <div class="nav-item" data-screen="settings" onclick="switchScreen('settings')">
+                    <span class="nav-icon">⚙️</span>
+                    <span>Settings</span>
+                </div>
+                <div class="nav-item" data-screen="invite" onclick="switchScreen('invite')">
+                    <span class="nav-icon">✉️</span>
+                    <span>Invite & Onboard</span>
+                </div>
+            </div>
+
+            <div class="sidebar-footer">
+                <div class="avatar">JS</div>
+                <div class="user-info">
+                    <div class="user-info-name">Jane Smith</div>
+                    <div class="user-info-email">jane@acme.com</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- CONTENT AREA -->
+        <div class="content-area">
+            <div class="content-scroll">
+                <!-- SCREEN 1: DASHBOARD -->
+                <div class="screen active" id="dashboard">
+                    <h1 class="page-title">Dashboard</h1>
+                    <p class="page-subtitle">Overview of your organization's mastery programs</p>
+
+                    <!-- Stat Cards -->
+                    <div class="stat-cards">
+                        <div class="stat-card">
+                            <div class="stat-value">147</div>
+                            <div class="stat-label">Active Learners</div>
+                            <div class="stat-trend">↑ 12% this week</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-value">12</div>
+                            <div class="stat-label">Active Courses</div>
+                            <div class="stat-trend">↑ 2 new this month</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-value">3.2</div>
+                            <div class="stat-label">Avg Mastery</div>
+                            <div class="stat-trend">↑ 0.3 from last month</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-value">89%</div>
+                            <div class="stat-label">Completion Rate</div>
+                            <div class="stat-trend">↑ 5% improvement</div>
+                        </div>
+                    </div>
+
+                    <!-- Quick Actions -->
+                    <div class="flex-row mb-6">
+                        <button class="button button-primary" onclick="switchScreen('upload')">
+                            <span>📤</span> Upload New Course
+                        </button>
+                        <button class="button button-outline">
+                            <span>👥</span> Invite Users
+                        </button>
+                        <button class="button button-outline">
+                            <span>📊</span> View Reports
+                        </button>
+                    </div>
+
+                    <!-- Recent Activity -->
+                    <div class="card">
+                        <div class="card-title">Recent Activity</div>
+                        <table class="table mt-4">
+                            <thead>
+                                <tr>
+                                    <th>Event</th>
+                                    <th>User</th>
+                                    <th>Course</th>
+                                    <th>Time</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td><span class="badge badge-success">✓ Completed</span></td>
+                                    <td>Alex Johnson</td>
+                                    <td>Strategic Decision Making</td>
+                                    <td>2 hours ago</td>
+                                </tr>
+                                <tr>
+                                    <td><span class="badge badge-info">📝 Enrolled</span></td>
+                                    <td>Maria Garcia</td>
+                                    <td>Leadership Essentials</td>
+                                    <td>5 hours ago</td>
+                                </tr>
+                                <tr>
+                                    <td><span class="badge badge-warning">⚠ In Progress</span></td>
+                                    <td>David Chen</td>
+                                    <td>Stakeholder Alignment</td>
+                                    <td>1 day ago</td>
+                                </tr>
+                                <tr>
+                                    <td><span class="badge badge-success">✓ Completed</span></td>
+                                    <td>Emma Wilson</td>
+                                    <td>Cross-Functional Teams</td>
+                                    <td>2 days ago</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- Enrollment Trends Chart -->
+                    <div class="card mt-8">
+                        <div class="card-title">Enrollment Trends</div>
+                        <div class="card-subtitle">Last 30 days</div>
+                        <div style="display: flex; align-items: flex-end; gap: 8px; height: 120px; margin-top: 20px;">
+                            <div style="flex: 1; background: var(--primary); border-radius: 8px 8px 0 0; height: 45%;"></div>
+                            <div style="flex: 1; background: var(--primary); border-radius: 8px 8px 0 0; height: 52%;"></div>
+                            <div style="flex: 1; background: var(--primary); border-radius: 8px 8px 0 0; height: 68%;"></div>
+                            <div style="flex: 1; background: var(--primary); border-radius: 8px 8px 0 0; height: 75%;"></div>
+                            <div style="flex: 1; background: var(--primary); border-radius: 8px 8px 0 0; height: 82%;"></div>
+                            <div style="flex: 1; background: var(--primary); border-radius: 8px 8px 0 0; height: 90%;"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- SCREEN 2: UPLOAD COURSE (HERO SCREEN) -->
+                <div class="screen" id="upload">
+                    <h1 class="page-title">Create New Course</h1>
+                    <p class="page-subtitle">Upload your materials and we'll auto-generate a complete mastery course</p>
+
+                    <!-- Upload Zone -->
+                    <div class="upload-zone">
+                        <div class="upload-icon">📁</div>
+                        <div class="upload-title">Drop files here or click to browse</div>
+                        <div class="upload-subtitle">PDF, DOCX, or PPTX up to 25MB</div>
+                    </div>
+
+                    <!-- Uploaded Files -->
+                    <div class="mt-8 mb-6">
+                        <div class="card-title" style="margin-bottom: 16px;">Uploaded Materials (2)</div>
+                        <div class="file-item">
+                            <div class="file-info">
+                                <div class="file-icon">📄</div>
+                                <div class="file-details">
+                                    <div class="file-name">strategic-leadership-guide.pdf</div>
+                                    <div class="file-size">4.2 MB • 42 pages</div>
+                                </div>
+                            </div>
+                            <div class="file-actions">
+                                <span class="badge badge-success">✓ Uploaded</span>
+                                <button class="button button-outline button-sm">Remove</button>
+                            </div>
+                        </div>
+                        <div class="file-item">
+                            <div class="file-info">
+                                <div class="file-icon">📝</div>
+                                <div class="file-details">
+                                    <div class="file-name">case-studies-appendix.docx</div>
+                                    <div class="file-size">1.8 MB • 18 pages</div>
+                                </div>
+                            </div>
+                            <div class="file-actions">
+                                <span class="badge badge-success">✓ Uploaded</span>
+                                <button class="button button-outline button-sm">Remove</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Generate Button -->
+                    <div class="text-center mb-6">
+                        <button class="button button-primary" style="font-size: 16px; padding: 0 32px; height: 48px;">
+                            🚀 Generate Course from Materials
+                        </button>
+                    </div>
+
+                    <!-- Process Pipeline -->
+                    <div class="pipeline">
+                        <div class="pipeline-step">
+                            <div class="step-card done">
+                                <div class="step-icon">✓</div>
+                                <div class="step-title">Extract Content</div>
+                            </div>
+                        </div>
+                        <div class="pipeline-step">
+                            <div class="step-card done">
+                                <div class="step-icon">✓</div>
+                                <div class="step-title">AI Analysis</div>
+                            </div>
+                        </div>
+                        <div class="pipeline-step">
+                            <div class="step-card active">
+                                <div class="step-icon">⚙️</div>
+                                <div class="step-title">Chunk & Embed</div>
+                            </div>
+                        </div>
+                        <div class="pipeline-step">
+                            <div class="step-card pending">
+                                <div class="step-icon">📋</div>
+                                <div class="step-title">Review & Publish</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- AI-Generated Course Preview -->
+                    <div class="preview-card">
+                        <div class="preview-label">AI-Generated Course Preview</div>
+
+                        <div class="form-group">
+                            <label class="form-label">Course Title</label>
+                            <input type="text" class="input" value="Strategic Leadership & Decision Making" style="width: 100%;">
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label">Description</label>
+                            <textarea class="textarea" style="width: 100%;">Develop advanced leadership capabilities through strategic decision-making frameworks, stakeholder analysis, and evidence-based organizational tactics.</textarea>
+                        </div>
+
+                        <div>
+                            <label class="form-label">Mastery Criteria</label>
+                            <div class="mastery-badges">
+                                <span class="badge badge-success">✓ Strategic Vision</span>
+                                <span class="badge badge-success">✓ Stakeholder Analysis</span>
+                                <span class="badge badge-success">✓ Risk Assessment</span>
+                                <span class="badge badge-info">📌 Decision Frameworks</span>
+                                <span class="badge badge-info">📌 Evidence Anchoring</span>
+                            </div>
+                        </div>
+
+                        <div class="flex-row" style="margin-top: 20px;">
+                            <button class="button button-primary">✓ Publish Course</button>
+                            <button class="button button-outline">✏️ Edit Details</button>
+                            <button class="button button-outline">💾 Save as Draft</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- SCREEN 3: COURSES LIST -->
+                <div class="screen" id="courses">
+                    <div class="header-row mb-6">
+                        <div class="header-left">
+                            <h1 class="page-title">Courses</h1>
+                            <p class="page-subtitle">12 courses in your organization</p>
+                        </div>
+                        <div class="header-right">
+                            <button class="button button-primary" onclick="switchScreen('upload')">
+                                <span>+</span> Upload New Course
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Filter Tabs -->
+                    <div class="filter-tabs">
+                        <div class="filter-pill active">All <strong>(12)</strong></div>
+                        <div class="filter-pill">Active <strong>(8)</strong></div>
+                        <div class="filter-pill">Draft <strong>(3)</strong></div>
+                        <div class="filter-pill">Archived <strong>(1)</strong></div>
+                    </div>
+
+                    <!-- Search -->
+                    <div class="mb-6">
+                        <input type="text" class="input" placeholder="Search courses..." style="width: 100%; max-width: 300px;">
+                    </div>
+
+                    <!-- Course Cards -->
+                    <div class="grid-3">
+                        <!-- Card 1 -->
+                        <div class="card">
+                            <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 12px;">
+                                <h3 class="card-title" style="margin: 0;">Strategic Decision Making</h3>
+                                <span class="badge badge-success">✓ Active</span>
+                            </div>
+                            <div class="card-subtitle">Master frameworks for strategic choices</div>
+                            <div style="display: flex; gap: 16px; font-size: 13px; margin-bottom: 16px;">
+                                <div>👥 42 enrolled</div>
+                                <div>📄 3 materials</div>
+                                <div>⭐ 2.8 mastery</div>
+                            </div>
+                            <div>
+                                <div style="font-size: 12px; color: var(--muted-foreground); margin-bottom: 8px;">68% Progress</div>
+                                <div class="progress-bar">
+                                    <div class="progress-fill" style="width: 68%;"></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Card 2 -->
+                        <div class="card">
+                            <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 12px;">
+                                <h3 class="card-title" style="margin: 0;">Cross-Functional Stakeholder Alignment</h3>
+                                <span class="badge badge-success">✓ Active</span>
+                            </div>
+                            <div class="card-subtitle">Build alignment across teams</div>
+                            <div style="display: flex; gap: 16px; font-size: 13px; margin-bottom: 16px;">
+                                <div>👥 38 enrolled</div>
+                                <div>📄 5 materials</div>
+                                <div>⭐ 3.1 mastery</div>
+                            </div>
+                            <div>
+                                <div style="font-size: 12px; color: var(--muted-foreground); margin-bottom: 8px;">82% Progress</div>
+                                <div class="progress-bar">
+                                    <div class="progress-fill" style="width: 82%;"></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Card 3 -->
+                        <div class="card">
+                            <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 12px;">
+                                <h3 class="card-title" style="margin: 0;">Strategic Leadership & Decision Making</h3>
+                                <span class="badge badge-warning">⚠ Draft</span>
+                            </div>
+                            <div class="card-subtitle">Advanced leadership essentials</div>
+                            <div style="display: flex; gap: 16px; font-size: 13px; margin-bottom: 16px;">
+                                <div>👥 0 enrolled</div>
+                                <div>📄 2 materials</div>
+                                <div>🔒 Private</div>
+                            </div>
+                            <div style="margin-top: 16px;">
+                                <button class="button button-primary" style="width: 100%; justify-content: center;">🚀 Publish</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- SCREEN 4: COURSE DETAIL/EDITOR -->
+                <div class="screen" id="course-detail">
+                    <!-- Breadcrumb -->
+                    <div class="breadcrumb">
+                        <span class="breadcrumb-item">Courses</span>
+                        <span class="breadcrumb-separator">/</span>
+                        <span class="breadcrumb-item">Strategic Decision Making</span>
+                    </div>
+
+                    <!-- Tabs -->
+                    <div class="tab-group">
+                        <button class="tab active">Overview</button>
+                        <button class="tab">Materials</button>
+                        <button class="tab">Content Chunks</button>
+                        <button class="tab">Settings</button>
+                    </div>
+
+                    <!-- Stats Row -->
+                    <div class="stat-cards">
+                        <div class="stat-card">
+                            <div class="stat-value">42</div>
+                            <div class="stat-label">Enrolled</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-value">3.1</div>
+                            <div class="stat-label">Avg Mastery</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-value">2</div>
+                            <div class="stat-label">Materials</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-value">68%</div>
+                            <div class="stat-label">Completion</div>
+                        </div>
+                    </div>
+
+                    <!-- Course Metadata -->
+                    <div class="card">
+                        <div class="section-title">Course Details</div>
+
+                        <div class="form-group">
+                            <label class="form-label">Title</label>
+                            <input type="text" class="input" value="Strategic Decision Making" style="width: 100%;">
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label">Description</label>
+                            <textarea class="textarea" style="width: 100%;">Master frameworks for strategic decision-making in complex organizational environments. Learn to analyze stakeholders, assess risks, and anchor decisions in evidence.</textarea>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label">Course Type</label>
+                            <select class="input" style="width: 100%;">
+                                <option>Leadership Development</option>
+                                <option>Technical Skills</option>
+                                <option>Team Collaboration</option>
+                            </select>
+                        </div>
+
+                        <div style="margin-bottom: 20px;">
+                            <label class="form-label">Mastery Criteria</label>
+                            <div class="mastery-badges">
+                                <span class="badge badge-success">✓ Strategic Vision</span>
+                                <span class="badge badge-success">✓ Stakeholder Analysis</span>
+                                <span class="badge badge-success">✓ Risk Assessment</span>
+                                <span class="badge badge-info">📌 Decision Frameworks</span>
+                            </div>
+                        </div>
+
+                        <div style="margin-bottom: 20px;">
+                            <span class="badge badge-success">✓ Active</span>
+                        </div>
+                    </div>
+
+                    <!-- Materials Section -->
+                    <div class="card mt-8">
+                        <div class="section-title">Materials</div>
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>File</th>
+                                    <th>Upload Date</th>
+                                    <th>Size</th>
+                                    <th>Chunks</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>📄 strategic-leadership-guide.pdf</td>
+                                    <td>Mar 10, 2026</td>
+                                    <td>4.2 MB</td>
+                                    <td>42</td>
+                                </tr>
+                                <tr>
+                                    <td>📝 case-studies-appendix.docx</td>
+                                    <td>Mar 10, 2026</td>
+                                    <td>1.8 MB</td>
+                                    <td>18</td>
+                                </tr>
+                            </tbody>
+                        </table>
+
+                        <div style="margin-top: 16px;">
+                            <button class="button button-outline">+ Add More Materials</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- SCREEN 5: USERS & ENROLLMENT -->
+                <div class="screen" id="users">
+                    <div class="header-row mb-6">
+                        <div class="header-left">
+                            <h1 class="page-title">Users</h1>
+                            <p class="page-subtitle">147 users in Acme Corp</p>
+                        </div>
+                        <div class="header-right">
+                            <button class="button button-outline">📥 Import CSV</button>
+                            <button class="button button-primary" onclick="switchScreen('invite')">+ Invite User</button>
+                        </div>
+                    </div>
+
+                    <!-- Filter Tabs -->
+                    <div class="filter-tabs">
+                        <div class="filter-pill active">All <strong>(147)</strong></div>
+                        <div class="filter-pill">Active <strong>(139)</strong></div>
+                        <div class="filter-pill">Pending <strong>(5)</strong></div>
+                        <div class="filter-pill">Deactivated <strong>(3)</strong></div>
+                    </div>
+
+                    <!-- Users Table -->
+                    <div class="card">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>User</th>
+                                    <th>Email</th>
+                                    <th>Role</th>
+                                    <th>Enrolled Courses</th>
+                                    <th>Status</th>
+                                    <th>Joined</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>
+                                        <div style="display: flex; align-items: center; gap: 8px;">
+                                            <div class="avatar" style="width: 32px; height: 32px; font-size: 12px;">AJ</div>
+                                            Alex Johnson
+                                        </div>
+                                    </td>
+                                    <td>alex.johnson@acme.com</td>
+                                    <td><span class="badge badge-info">🎓 Learner</span></td>
+                                    <td>8</td>
+                                    <td><span class="badge badge-success">✓ Active</span></td>
+                                    <td>Jan 15, 2026</td>
+                                </tr>
+                                <tr>
+                                    <td>
+                                        <div style="display: flex; align-items: center; gap: 8px;">
+                                            <div class="avatar" style="width: 32px; height: 32px; font-size: 12px; background: var(--warning);">MG</div>
+                                            Maria Garcia
+                                        </div>
+                                    </td>
+                                    <td>maria.garcia@acme.com</td>
+                                    <td><span class="badge badge-warning">🎯 Facilitator</span></td>
+                                    <td>12</td>
+                                    <td><span class="badge badge-success">✓ Active</span></td>
+                                    <td>Dec 1, 2025</td>
+                                </tr>
+                                <tr>
+                                    <td>
+                                        <div style="display: flex; align-items: center; gap: 8px;">
+                                            <div class="avatar" style="width: 32px; height: 32px; font-size: 12px; background: var(--primary);">DC</div>
+                                            David Chen
+                                        </div>
+                                    </td>
+                                    <td>david.chen@acme.com</td>
+                                    <td><span class="badge badge-primary">👨‍💼 Admin</span></td>
+                                    <td>All</td>
+                                    <td><span class="badge badge-success">✓ Active</span></td>
+                                    <td>Nov 20, 2025</td>
+                                </tr>
+                                <tr>
+                                    <td>
+                                        <div style="display: flex; align-items: center; gap: 8px;">
+                                            <div class="avatar" style="width: 32px; height: 32px; font-size: 12px; background: hsl(282, 60%, 50%);">EW</div>
+                                            Emma Wilson
+                                        </div>
+                                    </td>
+                                    <td>emma.wilson@acme.com</td>
+                                    <td><span class="badge badge-info">🎓 Learner</span></td>
+                                    <td>5</td>
+                                    <td><span class="badge badge-success">✓ Active</span></td>
+                                    <td>Oct 10, 2025</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- Privacy Notice -->
+                    <div class="privacy-notice">
+                        <div class="privacy-notice-icon">🔒</div>
+                        <div class="privacy-notice-text">Mastery profiles are private by default. Individual learning data is never exposed across the system. All analytics show aggregate data only.</div>
+                    </div>
+                </div>
+
+                <!-- SCREEN 6: ANALYTICS -->
+                <div class="screen" id="analytics">
+                    <h1 class="page-title">Analytics</h1>
+                    <p class="page-subtitle">Organization-wide mastery metrics and trends</p>
+
+                    <!-- Stats Row -->
+                    <div class="stat-cards">
+                        <div class="stat-card">
+                            <div class="stat-value">89%</div>
+                            <div class="stat-label">Completion Rate</div>
+                            <div class="stat-trend">↑ 4% this month</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-value">3.2</div>
+                            <div class="stat-label">Avg Mastery Growth</div>
+                            <div class="stat-trend">↑ 0.5 from last quarter</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-value">147</div>
+                            <div class="stat-label">Active This Week</div>
+                            <div class="stat-trend">→ Steady engagement</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-value">42</div>
+                            <div class="stat-label">Avg Session (min)</div>
+                            <div class="stat-trend">↑ 8 min increase</div>
+                        </div>
+                    </div>
+
+                    <!-- Charts -->
+                    <div class="grid-2 mt-8">
+                        <div class="card">
+                            <div class="card-title">Enrollment Over Time</div>
+                            <div class="card-subtitle">Last 90 days</div>
+                            <div style="display: flex; align-items: flex-end; gap: 6px; height: 180px; margin-top: 20px;">
+                                <div style="flex: 1; background: var(--primary); border-radius: 4px 4px 0 0; height: 35%;"></div>
+                                <div style="flex: 1; background: var(--primary); border-radius: 4px 4px 0 0; height: 42%;"></div>
+                                <div style="flex: 1; background: var(--primary); border-radius: 4px 4px 0 0; height: 55%;"></div>
+                                <div style="flex: 1; background: var(--primary); border-radius: 4px 4px 0 0; height: 68%;"></div>
+                                <div style="flex: 1; background: var(--primary); border-radius: 4px 4px 0 0; height: 75%;"></div>
+                                <div style="flex: 1; background: var(--primary); border-radius: 4px 4px 0 0; height: 82%;"></div>
+                                <div style="flex: 1; background: var(--primary); border-radius: 4px 4px 0 0; height: 90%;"></div>
+                                <div style="flex: 1; background: var(--primary); border-radius: 4px 4px 0 0; height: 95%;"></div>
+                            </div>
+                        </div>
+
+                        <div class="card">
+                            <div class="card-title">Mastery Distribution</div>
+                            <div class="card-subtitle">All courses</div>
+                            <div style="display: flex; align-items: flex-end; gap: 6px; height: 180px; margin-top: 20px;">
+                                <div style="flex: 1; background: var(--success); border-radius: 4px 4px 0 0; height: 25%; position: relative;">
+                                    <div style="position: absolute; bottom: -25px; width: 100%; text-align: center; font-size: 11px; color: var(--muted-foreground);">0-1</div>
+                                </div>
+                                <div style="flex: 1; background: var(--success); border-radius: 4px 4px 0 0; height: 42%;"></div>
+                                <div style="flex: 1; background: var(--warning); border-radius: 4px 4px 0 0; height: 68%;"></div>
+                                <div style="flex: 1; background: var(--primary); border-radius: 4px 4px 0 0; height: 85%;"></div>
+                                <div style="flex: 1; background: var(--info); border-radius: 4px 4px 0 0; height: 78%;"></div>
+                            </div>
+                            <div style="text-align: center; margin-top: 40px; font-size: 11px; color: var(--muted-foreground);">1-2 | 2-3 | 3-4 | 4-5</div>
+                        </div>
+                    </div>
+
+                    <div class="grid-2 mt-8">
+                        <div class="card">
+                            <div class="card-title">Course Effectiveness</div>
+                            <div class="card-subtitle">Completion vs Mastery</div>
+                            <div style="display: flex; align-items: flex-end; gap: 6px; height: 180px; margin-top: 20px;">
+                                <div style="flex: 1; background: var(--primary); border-radius: 4px 4px 0 0; height: 78%;"></div>
+                                <div style="flex: 1; background: var(--primary); border-radius: 4px 4px 0 0; height: 82%;"></div>
+                                <div style="flex: 1; background: var(--primary); border-radius: 4px 4px 0 0; height: 71%;"></div>
+                                <div style="flex: 1; background: var(--primary); border-radius: 4px 4px 0 0; height: 65%;"></div>
+                                <div style="flex: 1; background: var(--primary); border-radius: 4px 4px 0 0; height: 88%;"></div>
+                                <div style="flex: 1; background: var(--primary); border-radius: 4px 4px 0 0; height: 92%;"></div>
+                            </div>
+                        </div>
+
+                        <div class="card">
+                            <div class="card-title">Top Performing Courses</div>
+                            <table class="table mt-4">
+                                <thead>
+                                    <tr>
+                                        <th>Course</th>
+                                        <th>Mastery</th>
+                                        <th>Completion</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td>Strategic Decision Making</td>
+                                        <td>3.2</td>
+                                        <td>82%</td>
+                                    </tr>
+                                    <tr>
+                                        <td>Stakeholder Alignment</td>
+                                        <td>3.1</td>
+                                        <td>78%</td>
+                                    </tr>
+                                    <tr>
+                                        <td>Leadership Essentials</td>
+                                        <td>2.9</td>
+                                        <td>71%</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Privacy Notice -->
+                    <div class="privacy-notice">
+                        <div class="privacy-notice-icon">🔒</div>
+                        <div class="privacy-notice-text">Analytics show aggregate data only. Individual mastery profiles are never exposed. All personal learning data remains private and secure.</div>
+                    </div>
+                </div>
+
+                <!-- SCREEN 7: ORG SETTINGS -->
+                <div class="screen" id="settings">
+                    <h1 class="page-title">Organization Settings</h1>
+                    <p class="page-subtitle">Manage your organization's configuration and integrations</p>
+
+                    <!-- Organization Details -->
+                    <div class="card mb-6">
+                        <div class="section-title">Organization Details</div>
+
+                        <div class="form-group">
+                            <label class="form-label">Organization Name</label>
+                            <input type="text" class="input" value="Acme Corporation" style="width: 100%;">
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label">Logo</label>
+                            <div style="border: 2px dashed var(--border); border-radius: 10px; padding: 20px; text-align: center; background: var(--surface);">
+                                <div style="font-size: 32px; margin-bottom: 8px;">🏢</div>
+                                <div style="font-size: 13px; color: var(--muted-foreground);">Click to upload organization logo</div>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label">Primary Color</label>
+                            <div style="display: flex; gap: 8px;">
+                                <div style="width: 48px; height: 48px; background: var(--primary); border-radius: 10px; border: 2px solid var(--border); cursor: pointer;"></div>
+                                <div style="display: flex; flex-direction: column; justify-content: center;">
+                                    <div style="font-size: 13px; font-weight: 600; color: var(--foreground);">Teal</div>
+                                    <div style="font-size: 11px; color: var(--muted-foreground);">hsl(174, 42%, 40%)</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Authentication & SSO -->
+                    <div class="card mb-6">
+                        <div class="section-title">Authentication & SSO</div>
+
+                        <div class="form-group">
+                            <label class="form-label">Auth0 Domain</label>
+                            <input type="text" class="input" value="acme-corp.auth0.com" style="width: 100%;">
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label">SSO Type</label>
+                            <select class="input" style="width: 100%;">
+                                <option>SAML 2.0</option>
+                                <option>OpenID Connect</option>
+                                <option>OAuth 2.0</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label">Client ID</label>
+                            <input type="text" class="input" value="••••••••••••••••••••" style="width: 100%;">
+                        </div>
+                    </div>
+
+                    <!-- Plan & Billing -->
+                    <div class="card mb-6">
+                        <div class="section-title">Plan & Billing</div>
+
+                        <div style="display: flex; justify-content: space-between; align-items: center; padding: 16px; background: var(--surface); border-radius: 10px; margin-bottom: 16px;">
+                            <div>
+                                <div style="font-size: 14px; font-weight: 600; color: var(--foreground);">Professional Plan</div>
+                                <div style="font-size: 12px; color: var(--muted-foreground); margin-top: 4px;">Up to 500 learners, unlimited courses</div>
+                            </div>
+                            <span class="badge badge-primary">ACTIVE</span>
+                        </div>
+
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px;">
+                            <div>
+                                <div style="font-size: 12px; color: var(--muted-foreground); margin-bottom: 4px;">Next Billing Date</div>
+                                <div style="font-size: 14px; font-weight: 600; color: var(--foreground);">April 15, 2026</div>
+                            </div>
+                            <div>
+                                <div style="font-size: 12px; color: var(--muted-foreground); margin-bottom: 4px;">Monthly Cost</div>
+                                <div style="font-size: 14px; font-weight: 600; color: var(--foreground);">$4,990.00</div>
+                            </div>
+                        </div>
+
+                        <div style="padding: 12px; background: var(--surface); border-radius: 10px; font-size: 12px; color: var(--muted-foreground);">
+                            <strong style="color: var(--foreground);">Usage:</strong> 147 of 500 learners (29%) • 12 of unlimited courses
+                        </div>
+                    </div>
+
+                    <!-- API & Webhooks -->
+                    <div class="card">
+                        <div class="section-title">API & Webhooks</div>
+
+                        <div class="form-group">
+                            <label class="form-label">API Key</label>
+                            <div style="display: flex; gap: 8px;">
+                                <input type="text" class="input" value="sk-••••••••••••••••••••••••••••••••" style="flex: 1;">
+                                <button class="button button-outline button-sm">Copy</button>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label">Webhook URL</label>
+                            <input type="text" class="input" placeholder="https://your-domain.com/webhook" style="width: 100%;">
+                        </div>
+
+                        <div style="display: flex; gap: 8px;">
+                            <button class="button button-destructive button-sm">🔄 Regenerate Key</button>
+                            <button class="button button-outline button-sm">Test Webhook</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- SCREEN 8: INVITE & ONBOARDING -->
+                <div class="screen" id="invite">
+                    <h1 class="page-title">Invite & Onboarding</h1>
+                    <p class="page-subtitle">Manage user invitations and welcome settings</p>
+
+                    <!-- Email Invitation -->
+                    <div class="card mb-6">
+                        <div class="section-title">Email Invitation</div>
+
+                        <div style="display: flex; gap: 12px;">
+                            <input type="text" class="input" placeholder="name@example.com" style="flex: 1;">
+                            <select class="input" style="width: 180px;">
+                                <option>🎓 Learner</option>
+                                <option>🎯 Facilitator</option>
+                                <option>👨‍💼 Admin</option>
+                            </select>
+                            <button class="button button-primary">Send Invite</button>
+                        </div>
+                    </div>
+
+                    <!-- Bulk Import -->
+                    <div class="card mb-6">
+                        <div class="section-title">Bulk Import</div>
+                        <div class="upload-zone" style="padding: 24px;">
+                            <div class="upload-icon">📊</div>
+                            <div class="upload-title">Drop CSV file here or click to browse</div>
+                            <div class="upload-subtitle">Columns: name, email, role</div>
+                        </div>
+                    </div>
+
+                    <!-- Sent Invitations -->
+                    <div class="card mb-6">
+                        <div class="section-title">Sent Invitations</div>
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>Name</th>
+                                    <th>Email</th>
+                                    <th>Role</th>
+                                    <th>Status</th>
+                                    <th>Sent Date</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>Robert Martinez</td>
+                                    <td>robert.martinez@acme.com</td>
+                                    <td>🎓 Learner</td>
+                                    <td><span class="badge badge-success">✓ Accepted</span></td>
+                                    <td>Mar 12, 2026</td>
+                                </tr>
+                                <tr>
+                                    <td>Sophie Laurent</td>
+                                    <td>sophie.laurent@acme.com</td>
+                                    <td>🎯 Facilitator</td>
+                                    <td><span class="badge badge-warning">⏱ Pending</span></td>
+                                    <td>Mar 14, 2026</td>
+                                </tr>
+                                <tr>
+                                    <td>James O'Brien</td>
+                                    <td>james.obrien@acme.com</td>
+                                    <td>🎓 Learner</td>
+                                    <td><span class="badge badge-warning">⏱ Pending</span></td>
+                                    <td>Mar 15, 2026</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- Welcome Message -->
+                    <div class="card">
+                        <div class="section-title">Welcome Message</div>
+                        <label class="form-label">Customize the welcome message sent to new users</label>
+                        <textarea class="textarea" style="width: 100%; min-height: 120px;">Welcome to Nexus² Mastery! 🎓
+
+You're joining Acme Corporation's learning platform where we build mastery through strategic, evidence-based course design.
+
+Your journey starts with clear learning objectives and continues with structured mastery criteria that align with your growth.
+
+Get started by exploring our course catalog. Questions? Reach out to your learning facilitator.
+
+Happy learning!</textarea>
+                        <div style="margin-top: 16px;">
+                            <button class="button button-primary">💾 Save Welcome Message</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function switchScreen(screenId) {
+            // Hide all screens
+            const screens = document.querySelectorAll('.screen');
+            screens.forEach(screen => screen.classList.remove('active'));
+
+            // Show selected screen
+            const selectedScreen = document.getElementById(screenId);
+            if (selectedScreen) {
+                selectedScreen.classList.add('active');
+            }
+
+            // Update active nav item
+            const navItems = document.querySelectorAll('.nav-item');
+            navItems.forEach(item => item.classList.remove('active'));
+            const activeNav = document.querySelector(`[data-screen="${screenId}"]`);
+            if (activeNav) {
+                activeNav.classList.add('active');
+            }
+
+            // Update URL bar
+            const urlMap = {
+                'dashboard': 'admin.nexusmastery.io/dashboard',
+                'upload': 'admin.nexusmastery.io/upload-course',
+                'courses': 'admin.nexusmastery.io/courses',
+                'course-detail': 'admin.nexusmastery.io/courses/strategic-decision-making',
+                'users': 'admin.nexusmastery.io/users',
+                'analytics': 'admin.nexusmastery.io/analytics',
+                'settings': 'admin.nexusmastery.io/settings',
+                'invite': 'admin.nexusmastery.io/invite-onboard'
+            };
+            const urlBar = document.getElementById('url-bar');
+            if (urlBar && urlMap[screenId]) {
+                urlBar.textContent = urlMap[screenId];
+            }
+        }
+
+        // Initialize with dashboard screen
+        switchScreen('dashboard');
+    </script>
+</body>
+</html>

@@ -1,0 +1,80 @@
+Strategic Decision Making: Core Frameworks
+
+Module 1: Data-Driven Judgment
+
+Data-driven judgment is the ability to make decisions grounded in evidence rather than intuition alone.
+Effective leaders combine quantitative data with qualitative insights to form balanced conclusions.
+
+Key principles:
+- Always identify what data exists before forming a hypothesis
+- Distinguish between correlation and causation
+- Acknowledge data limitations and gaps
+- Use structured frameworks (decision matrices, weighted scoring) to organize evidence
+- Validate assumptions with at least two independent data sources
+
+Common pitfalls:
+- Confirmation bias: seeking data that supports a pre-existing conclusion
+- Anchoring: over-relying on the first piece of information encountered
+- Analysis paralysis: waiting for perfect data when sufficient data exists
+- Gut-feel override: dismissing data that contradicts intuition
+
+Module 2: Risk Assessment
+
+Risk assessment involves systematically identifying, analyzing, and evaluating potential outcomes.
+The goal is not to eliminate risk but to make informed tradeoffs.
+
+Framework: IMPACT Analysis
+- Identify all stakeholders affected
+- Map potential outcomes (best case, worst case, most likely)
+- Probability estimation using available evidence
+- Assess reversibility — can this decision be undone?
+- Consider second-order effects
+- Timeline implications — when do consequences manifest?
+
+Module 3: Stakeholder Impact Analysis
+
+Every strategic decision affects multiple stakeholders differently. Effective leaders map these impacts
+before committing to a course of action.
+
+Stakeholder mapping steps:
+1. List all affected parties (direct and indirect)
+2. Assess each stakeholder's power, interest, and influence
+3. Identify alignment and misalignment between stakeholder goals
+4. Anticipate objections and prepare responses
+5. Design communication strategies tailored to each group
+
+The Distributed Team Challenge:
+When teams span multiple time zones and cultures, stakeholder alignment requires extra attention to:
+- Asynchronous communication norms
+- Cultural differences in decision-making styles
+- Power dynamics that emerge from proximity to leadership
+- Information asymmetry between co-located and remote team members
+
+Module 4: Show Your Work
+
+Externalizing your reasoning process is critical for building trust and catching errors.
+When you "show your work," you:
+- Make implicit assumptions explicit
+- Allow others to identify gaps in your logic
+- Create a record that can be reviewed and improved
+- Build credibility through transparency
+
+Practice techniques:
+- Before meetings, write out your reasoning chain in bullet points
+- Use "I believe X because Y" statements
+- When challenged, respond with evidence rather than authority
+- Ask others to articulate their reasoning too
+
+Module 5: Alternative Generation
+
+Before committing to a solution, generate at least three alternatives. This prevents:
+- Premature commitment to the first viable option
+- Solution fixation — falling in love with your idea
+- Missing creative approaches that combine elements from multiple options
+
+The "What If" technique:
+- What if we had unlimited budget?
+- What if we had to deliver in half the time?
+- What if our main assumption is wrong?
+- What if we approached this from the customer's perspective?
+- What if we did nothing?
