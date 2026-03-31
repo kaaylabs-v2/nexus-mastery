@@ -8,6 +8,7 @@ import {
   ArrowLeft, BookOpen, MessageSquare, Clock, Target,
   Brain, Zap, TrendingUp, Lightbulb, ChevronRight,
 } from "lucide-react";
+import { titleCase } from "@/lib/utils";
 import { adminApi, type LearnerDetail } from "@/lib/api-client";
 
 const masteryStatusColors: Record<string, { bg: string; text: string; label: string }> = {
@@ -157,7 +158,7 @@ export default function LearnerDetailPage() {
                     {tp.reasoning_style && (
                       <div>
                         <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1.5">Reasoning Style</p>
-                        <p className="text-sm text-foreground">{String(tp.reasoning_style)}</p>
+                        <p className="text-sm text-foreground">{titleCase(String(tp.reasoning_style))}</p>
                       </div>
                     )}
 
@@ -169,7 +170,7 @@ export default function LearnerDetailPage() {
                             {(tp.strengths as string[]).map((s: string, i: number) => (
                               <div key={i} className="flex items-center gap-2">
                                 <div className="h-1.5 w-1.5 rounded-full bg-emerald-500 shrink-0" />
-                                <span className="text-sm text-foreground">{s}</span>
+                                <span className="text-sm text-foreground">{titleCase(s)}</span>
                               </div>
                             ))}
                           </div>
@@ -182,7 +183,7 @@ export default function LearnerDetailPage() {
                             {(tp.gaps as string[]).map((g: string, i: number) => (
                               <div key={i} className="flex items-center gap-2">
                                 <div className="h-1.5 w-1.5 rounded-full bg-amber-500 shrink-0" />
-                                <span className="text-sm text-foreground">{g}</span>
+                                <span className="text-sm text-foreground">{titleCase(g)}</span>
                               </div>
                             ))}
                           </div>

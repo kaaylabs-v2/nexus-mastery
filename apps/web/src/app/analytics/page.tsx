@@ -10,6 +10,7 @@ import {
 import { ProgressCircle } from "@/components/ui/progress-circle";
 import { useLearner } from "@/contexts/LearnerContext";
 import { apiClient } from "@/lib/api-client";
+import { titleCase } from "@/lib/utils";
 import {
   RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis,
   Radar, ResponsiveContainer, BarChart, Bar, LineChart, Line,
@@ -325,7 +326,7 @@ export default function AnalyticsPage() {
                       <Brain className="h-4 w-4 text-violet-500" />
                       <span className="text-sm font-semibold text-foreground">Reasoning Style</span>
                     </div>
-                    <p className="text-sm text-muted-foreground leading-relaxed pl-6">{insights.reasoning_style}</p>
+                    <p className="text-sm text-muted-foreground leading-relaxed pl-6">{titleCase(insights.reasoning_style)}</p>
                   </div>
                 )}
 
@@ -342,7 +343,7 @@ export default function AnalyticsPage() {
                           {insights.strengths.map((s, i) => (
                             <li key={i} className="text-sm text-muted-foreground flex items-start gap-2">
                               <span className="text-emerald-500 mt-1">•</span>
-                              <span>{s}</span>
+                              <span>{titleCase(s)}</span>
                             </li>
                           ))}
                         </ul>
@@ -358,7 +359,7 @@ export default function AnalyticsPage() {
                           {insights.gaps.map((g, i) => (
                             <li key={i} className="text-sm text-muted-foreground flex items-start gap-2">
                               <span className="text-amber-500 mt-1">•</span>
-                              <span>{g}</span>
+                              <span>{titleCase(g)}</span>
                             </li>
                           ))}
                         </ul>
@@ -378,7 +379,7 @@ export default function AnalyticsPage() {
                         </div>
                         <div className="flex flex-wrap gap-2">
                           {insights.concepts_mastered.map((c, i) => (
-                            <span key={i} className="text-xs bg-primary/10 text-primary px-2.5 py-1 rounded-full font-medium">{c}</span>
+                            <span key={i} className="text-xs bg-primary/10 text-primary px-2.5 py-1 rounded-full font-medium">{titleCase(c)}</span>
                           ))}
                         </div>
                       </div>
@@ -391,7 +392,7 @@ export default function AnalyticsPage() {
                         </div>
                         <div className="flex flex-wrap gap-2">
                           {insights.concepts_struggling.map((c, i) => (
-                            <span key={i} className="text-xs bg-orange-500/10 text-orange-500 px-2.5 py-1 rounded-full font-medium">{c}</span>
+                            <span key={i} className="text-xs bg-orange-500/10 text-orange-500 px-2.5 py-1 rounded-full font-medium">{titleCase(c)}</span>
                           ))}
                         </div>
                       </div>
@@ -408,7 +409,7 @@ export default function AnalyticsPage() {
                     </div>
                     <div className="flex flex-wrap gap-2">
                       {insights.connections_made.map((c, i) => (
-                        <span key={i} className="text-xs bg-muted text-muted-foreground px-2.5 py-1 rounded-full">{c}</span>
+                        <span key={i} className="text-xs bg-muted text-muted-foreground px-2.5 py-1 rounded-full">{titleCase(c)}</span>
                       ))}
                     </div>
                   </div>
