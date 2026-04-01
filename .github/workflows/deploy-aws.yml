@@ -17,7 +17,7 @@ on:
           - services/api
 
 env:
-  AWS_REGION: eu-west-2             # set this to your preferred AWS region
+  AWS_REGION: us-west-2             # set this to your preferred AWS region
 
   # Admin App Configuration
   ADMIN_ECR_REPOSITORY: nexus-mastery-admin
