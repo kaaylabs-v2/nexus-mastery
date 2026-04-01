@@ -1,10 +1,6 @@
-name: Deploy Services to AWS ECR/ECS
+name: Manual Deploy to AWS ECS
 
 on:
-  push:
-    branches:
-      - devops-infra
-      - development
   workflow_dispatch:
     inputs:
       service:
@@ -15,6 +11,15 @@ on:
           - apps/admin
           - apps/web
           - services/api
+
+      environment:
+        description: 'Select environment'
+        required: true
+        type: choice
+        options:
+          - devops-infra
+          - qa
+          - master
 
 env:
   AWS_REGION: us-west-2
@@ -38,50 +43,34 @@ env:
   API_CONTAINER_NAME: nexus-mastery-service
 
 jobs:
-  setup:
-    runs-on: ubuntu-latest
-    outputs:
-      services: ${{ steps.set-services.outputs.services }}
-    steps:
-      - id: set-services
-        run: |
-          if [ "${{ github.event_name }}" == "push" ]; then
-            echo 'services=["apps/admin", "apps/web", "services/api"]' >> $GITHUB_OUTPUT
-          else
-            echo "services=[\"${{ github.event.inputs.service }}\"]" >> $GITHUB_OUTPUT
-          fi
-
   deploy:
-    needs: setup
-    strategy:
-      fail-fast: false
-      matrix:
-        service: ${{ fromJson(needs.setup.outputs.services) }}
     runs-on: ubuntu-latest
+
+    environment: ${{ github.event.inputs.environment }}
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      # 🔧 Dynamic Config
+      # 🔧 Select Service Config
       - name: Configure Variables
         id: config
         run: |
-          if [ "${{ matrix.service }}" == "apps/admin" ]; then
+          if [ "${{ github.event.inputs.service }}" == "apps/admin" ]; then
             echo "working_dir=apps/admin" >> $GITHUB_OUTPUT
             echo "ecr_repository=${{ env.ADMIN_ECR_REPOSITORY }}" >> $GITHUB_OUTPUT
             echo "ecs_cluster=${{ env.ADMIN_ECS_CLUSTER }}" >> $GITHUB_OUTPUT
             echo "ecs_service=${{ env.ADMIN_ECS_SERVICE }}" >> $GITHUB_OUTPUT
             echo "container_name=${{ env.ADMIN_CONTAINER_NAME }}" >> $GITHUB_OUTPUT
 
-          elif [ "${{ matrix.service }}" == "apps/web" ]; then
+          elif [ "${{ github.event.inputs.service }}" == "apps/web" ]; then
             echo "working_dir=apps/web" >> $GITHUB_OUTPUT
             echo "ecr_repository=${{ env.WEB_ECR_REPOSITORY }}" >> $GITHUB_OUTPUT
             echo "ecs_cluster=${{ env.WEB_ECS_CLUSTER }}" >> $GITHUB_OUTPUT
             echo "ecs_service=${{ env.WEB_ECS_SERVICE }}" >> $GITHUB_OUTPUT
             echo "container_name=${{ env.WEB_CONTAINER_NAME }}" >> $GITHUB_OUTPUT
 
-          elif [ "${{ matrix.service }}" == "services/api" ]; then
+          elif [ "${{ github.event.inputs.service }}" == "services/api" ]; then
             echo "working_dir=services/api" >> $GITHUB_OUTPUT
             echo "ecr_repository=${{ env.API_ECR_REPOSITORY }}" >> $GITHUB_OUTPUT
             echo "ecs_cluster=${{ env.API_ECS_CLUSTER }}" >> $GITHUB_OUTPUT
@@ -89,7 +78,7 @@ jobs:
             echo "container_name=${{ env.API_CONTAINER_NAME }}" >> $GITHUB_OUTPUT
           fi
 
-      # 🔐 AWS Auth
+      # 🔐 AWS Credentials
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
@@ -97,13 +86,13 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ env.AWS_REGION }}
 
-      # 🔑 ECR Login
+      # 🔑 Login to ECR
       - name: Login to Amazon ECR
         id: login-ecr
         uses: aws-actions/amazon-ecr-login@v2
 
-      # 📦 Build & Push
-      - name: Build, tag, and push image
+      # 📦 Build & Push Docker Image
+      - name: Build and Push Image
         id: build-image
         env:
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
@@ -115,16 +104,16 @@ jobs:
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
           echo "image=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" >> $GITHUB_OUTPUT
 
-      # 📥 Fetch Task Definition from AWS
-      - name: Fetch current task definition
+      # 📥 Fetch Task Definition
+      - name: Fetch Task Definition
         run: |
           aws ecs describe-task-definition \
             --task-definition ${{ steps.config.outputs.container_name }} \
             --query taskDefinition \
             > task-definition.json
 
-      # 🧹 Clean unwanted fields
-      - name: Clean task definition
+      # 🧹 Clean JSON
+      - name: Clean Task Definition
         run: |
           cat task-definition.json | jq 'del(
             .taskDefinitionArn,
@@ -136,8 +125,8 @@ jobs:
             .registeredBy
           )' > cleaned-task-def.json
 
-      # 🔄 Replace Image
-      - name: Render new task definition
+      # 🔄 Update Image
+      - name: Render New Task Definition
         id: task-def
         uses: aws-actions/amazon-ecs-render-task-definition@v1
         with:
