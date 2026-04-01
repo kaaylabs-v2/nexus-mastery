@@ -8,7 +8,7 @@ from alembic import op
 import sqlalchemy as sa
 
 revision = "a003_course_thumbnail"
-down_revision = "a002_course_files_ingestion"
+down_revision = "a002_admin"
 branch_labels = None
 depends_on = None
 
