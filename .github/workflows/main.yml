@@ -1,0 +1,113 @@
+name: Deploy Services to AWS ECR/ECS
+
+on:
+  workflow_dispatch:
+    inputs:
+      service:
+        description: 'Select the service to deploy'
+        required: true
+        type: choice
+        options:
+          - apps/admin
+          - apps/web
+          - services/api
+
+env:
+  AWS_REGION: eu-west-2             # set this to your preferred AWS region
+
+  # Admin App Configuration
+  ADMIN_ECR_REPOSITORY: nexus-mastery-admin
+  ADMIN_ECS_CLUSTER: nexus-mastery
+  ADMIN_ECS_SERVICE: nexus-mastery-admin  # Ensure this matches your ECS Service
+  ADMIN_CONTAINER_NAME: nexus-mastery-admin       # Ensure this matches your container name
+  
+  # Web App Configuration
+  WEB_ECR_REPOSITORY: nexus-mastery-web
+  WEB_ECS_CLUSTER: nexus-mastery
+  WEB_ECS_SERVICE: nexus-mastery-web      # Ensure this matches your ECS Service
+  WEB_CONTAINER_NAME: nexus-mastery-web           # Ensure this matches your container name
+
+  # Backend Service Configuration
+  API_ECR_REPOSITORY: nexus-mastery-service
+  API_ECS_CLUSTER: nexus-mastery
+  API_ECS_SERVICE: nexus-mastery-service      # Ensure this matches your ECS Service
+  API_CONTAINER_NAME: nexus-mastery-service       # Ensure this matches your container name
+
+jobs:
+  deploy:
+    name: Deploy ${{ github.event.inputs.service }}
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/development' || github.ref == 'refs/heads/devops-infra'
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Configure Variables
+        id: config
+        run: |
+          if [ "${{ github.event.inputs.service }}" == "apps/admin" ]; then
+            echo "working_dir=apps/admin" >> "$GITHUB_OUTPUT"
+            echo "ecr_repository=${{ env.ADMIN_ECR_REPOSITORY }}" >> "$GITHUB_OUTPUT"
+            echo "ecs_cluster=${{ env.ADMIN_ECS_CLUSTER }}" >> "$GITHUB_OUTPUT"
+            echo "ecs_service=${{ env.ADMIN_ECS_SERVICE }}" >> "$GITHUB_OUTPUT"
+            echo "task_definition=apps/admin/task-definition.json" >> "$GITHUB_OUTPUT"
+            echo "container_name=${{ env.ADMIN_CONTAINER_NAME }}" >> "$GITHUB_OUTPUT"
+          elif [ "${{ github.event.inputs.service }}" == "apps/web" ]; then
+            echo "working_dir=apps/web" >> "$GITHUB_OUTPUT"
+            echo "ecr_repository=${{ env.WEB_ECR_REPOSITORY }}" >> "$GITHUB_OUTPUT"
+            echo "ecs_cluster=${{ env.WEB_ECS_CLUSTER }}" >> "$GITHUB_OUTPUT"
+            echo "ecs_service=${{ env.WEB_ECS_SERVICE }}" >> "$GITHUB_OUTPUT"
+            echo "task_definition=apps/web/task-definition.json" >> "$GITHUB_OUTPUT"
+            echo "container_name=${{ env.WEB_CONTAINER_NAME }}" >> "$GITHUB_OUTPUT"
+          elif [ "${{ github.event.inputs.service }}" == "services/api" ]; then
+            echo "working_dir=services/api" >> "$GITHUB_OUTPUT"
+            echo "ecr_repository=${{ env.API_ECR_REPOSITORY }}" >> "$GITHUB_OUTPUT"
+            echo "ecs_cluster=${{ env.API_ECS_CLUSTER }}" >> "$GITHUB_OUTPUT"
+            echo "ecs_service=${{ env.API_ECS_SERVICE }}" >> "$GITHUB_OUTPUT"
+            echo "task_definition=services/api/task-definition.json" >> "$GITHUB_OUTPUT"
+            echo "container_name=${{ env.API_CONTAINER_NAME }}" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Build, tag, and push image to Amazon ECR
+        id: build-image
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          ECR_REPOSITORY: ${{ steps.config.outputs.ecr_repository }}
+          IMAGE_TAG: ${{ github.sha }}
+          WORKING_DIR: ${{ steps.config.outputs.working_dir }}
+        run: |
+          # The build is run from the root, targeting the specific Dockerfile
+          # This is typical for monorepos to access root workspaces/configs.
+          docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG -f $WORKING_DIR/Dockerfile .
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+          echo "image=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" >> $GITHUB_OUTPUT
+
+      - name: Fill in the new image ID in the Amazon ECS task definition
+        id: task-def
+        uses: aws-actions/amazon-ecs-render-task-definition@v1
+        with:
+          task-definition: ${{ steps.config.outputs.task_definition }}
+          container-name: ${{ steps.config.outputs.container_name }}
+          image: ${{ steps.build-image.outputs.image }}
+
+      - name: Deploy Amazon ECS task definition
+        uses: aws-actions/amazon-ecs-deploy-task-definition@v1
+        with:
+          task-definition: ${{ steps.task-def.outputs.task-definition }}
+          service: ${{ steps.config.outputs.ecs_service }}
+          cluster: ${{ steps.config.outputs.ecs_cluster }}
+          wait-for-service-stability: true
+
+          
