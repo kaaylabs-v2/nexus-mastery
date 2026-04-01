@@ -110,7 +110,7 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ env.AWS_REGION }}
 
-      # 🔍 Debug (helps if anything fails)
+      # 🔍 Debug AWS Identity
       - name: Verify AWS Identity
         run: aws sts get-caller-identity
 
@@ -118,6 +118,24 @@ jobs:
       - name: Login to Amazon ECR
         id: login-ecr
         uses: aws-actions/amazon-ecr-login@v2
+
+      # 📥 Download .env from S3
+      - name: Download .env from S3
+        run: |
+          if [ "${{ matrix.service }}" == "apps/admin" ]; then
+            aws s3 cp s3://nexus-mastery/admin/.env ${{ steps.config.outputs.working_dir }}/.env
+
+          elif [ "${{ matrix.service }}" == "apps/web" ]; then
+            aws s3 cp s3://nexus-mastery/web/.env ${{ steps.config.outputs.working_dir }}/.env
+
+          elif [ "${{ matrix.service }}" == "services/api" ]; then
+            echo "No .env required for API (skip or add if needed)"
+          fi
+
+      # 🧪 Debug (optional)
+      - name: Verify .env file
+        run: |
+          ls -la ${{ steps.config.outputs.working_dir }}
 
       # 📦 Build & Push Image
       - name: Build and Push Image
@@ -128,7 +146,7 @@ jobs:
           IMAGE_TAG: ${{ github.sha }}
           WORKING_DIR: ${{ steps.config.outputs.working_dir }}
         run: |
-          docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG -f $WORKING_DIR/Dockerfile .
+          docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG -f $WORKING_DIR/Dockerfile $WORKING_DIR
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
           echo "image=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" >> $GITHUB_OUTPUT
 
