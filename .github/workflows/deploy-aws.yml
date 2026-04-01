@@ -57,10 +57,8 @@ jobs:
       - id: set-services
         run: |
           if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
-            echo "Manual deployment"
             echo "services=[\"${{ github.event.inputs.service }}\"]" >> $GITHUB_OUTPUT
           else
-            echo "Auto deployment"
             echo 'services=["apps/admin", "apps/web", "services/api"]' >> $GITHUB_OUTPUT
           fi
 
@@ -110,7 +108,7 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ env.AWS_REGION }}
 
-      # 🔍 Debug AWS Identity
+      # 🔍 Verify AWS
       - name: Verify AWS Identity
         run: aws sts get-caller-identity
 
@@ -119,25 +117,25 @@ jobs:
         id: login-ecr
         uses: aws-actions/amazon-ecr-login@v2
 
-      # 📥 Download .env from S3
+      # 📥 Download ENV from S3
       - name: Download .env from S3
         run: |
           if [ "${{ matrix.service }}" == "apps/admin" ]; then
-            aws s3 cp s3://nexus-mastery/admin/.env ${{ steps.config.outputs.working_dir }}/.env
+            aws s3 cp s3://nexus-mastery/admin/.env apps/admin/.env
 
           elif [ "${{ matrix.service }}" == "apps/web" ]; then
-            aws s3 cp s3://nexus-mastery/web/.env ${{ steps.config.outputs.working_dir }}/.env
+            aws s3 cp s3://nexus-mastery/web/.env apps/web/.env
 
-          elif [ "${{ matrix.service }}" == "services/api" ]; then
-            echo "No .env required for API (skip or add if needed)"
+          else
+            echo "Skipping .env for API"
           fi
 
       # 🧪 Debug (optional)
-      - name: Verify .env file
+      - name: Verify files
         run: |
-          ls -la ${{ steps.config.outputs.working_dir }}
+          ls -R
 
-      # 📦 Build & Push Image
+      # 📦 Build & Push (MONOREPO FIXED)
       - name: Build and Push Image
         id: build-image
         env:
@@ -146,7 +144,7 @@ jobs:
           IMAGE_TAG: ${{ github.sha }}
           WORKING_DIR: ${{ steps.config.outputs.working_dir }}
         run: |
-          docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG -f $WORKING_DIR/Dockerfile $WORKING_DIR
+          docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG -f $WORKING_DIR/Dockerfile .
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
           echo "image=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" >> $GITHUB_OUTPUT
 
