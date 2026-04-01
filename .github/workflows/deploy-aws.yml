@@ -109,3 +109,5 @@ jobs:
           service: ${{ steps.config.outputs.ecs_service }}
           cluster: ${{ steps.config.outputs.ecs_cluster }}
           wait-for-service-stability: true
+
+          
