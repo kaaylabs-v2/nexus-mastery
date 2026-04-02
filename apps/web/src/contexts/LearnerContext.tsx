@@ -247,9 +247,12 @@ export function LearnerProvider({ children }: { children: ReactNode }) {
         setCategories([category]);
         setActiveCategoryId(category.id);
       } catch (error) {
-        console.error("Failed to load learner data:", error);
-        // Keep default category data but log the error
-        // The UI will show default data which is better than a blank page
+        // 404 is expected when no categories exist yet — only log unexpected errors
+        const isExpected = error && typeof error === "object" && "message" in error &&
+          String((error as Error).message).includes("404");
+        if (!isExpected) {
+          console.error("Failed to load learner data:", error);
+        }
       }
     }
 

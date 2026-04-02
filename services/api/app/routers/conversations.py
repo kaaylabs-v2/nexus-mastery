@@ -516,106 +516,137 @@ async def conversation_stream(
                 if conv_key in _greeting_in_progress:
                     continue
                 _greeting_in_progress.add(conv_key)
+                try:  # ensure _greeting_in_progress is always cleaned up
+                    # Check for quiz result — if learner took the placement quiz,
+                    # skip assess mode and start at teach/challenge with calibrated depth
+                    quiz_result = message.get("quiz_result")
+                    if quiz_result:
+                        start_mode = quiz_result.get("skip_to_mode", "teach")
+                        if start_mode not in MODE_ORDER:
+                            start_mode = "teach"
+                        teach_depth = quiz_result.get("teach_depth", "foundational")
+                        familiarity = quiz_result.get("familiarity", "basic")
+                        quiz_pct = quiz_result.get("percentage", 0)
+                    else:
+                        start_mode = "assess"
+                        teach_depth = None
+                        familiarity = None
+                        quiz_pct = None
 
-                # Check for quiz result — if learner took the placement quiz,
-                # skip assess mode and start at teach/challenge with calibrated depth
-                quiz_result = message.get("quiz_result")
-                if quiz_result:
-                    start_mode = quiz_result.get("skip_to_mode", "teach")
-                    if start_mode not in MODE_ORDER:
-                        start_mode = "teach"
-                    teach_depth = quiz_result.get("teach_depth", "foundational")
-                    familiarity = quiz_result.get("familiarity", "basic")
-                    quiz_pct = quiz_result.get("percentage", 0)
-                else:
-                    start_mode = "assess"
-                    teach_depth = None
-                    familiarity = None
-                    quiz_pct = None
+                    async with async_session() as db:
+                        conversation = (await db.execute(
+                            select(Conversation).where(Conversation.id == conversation_id)
+                        )).scalar_one_or_none()
 
-                async with async_session() as db:
-                    conversation = (await db.execute(
-                        select(Conversation).where(Conversation.id == conversation_id)
-                    )).scalar_one_or_none()
+                        if not conversation:
+                            logger.warning(f"session_start: conversation {conversation_id} not found")
+                            await websocket.send_json({"type": "error", "content": "Session not found. Please go back and try again."})
+                            continue
 
-                    if not conversation or conversation.messages:
-                        continue
+                        # If conversation already has messages, send them back instead of re-greeting
+                        if conversation.messages:
+                            logger.info(f"session_start: conversation {conversation_id} already has {len(conversation.messages)} messages — sending existing state")
+                            # Send outline if available
+                            course_title, course_chunks, course_outline = await _load_course_and_chunks(
+                                conversation, "", [], current_topic_id=conversation.current_topic_id or 1
+                            )
+                            if course_outline:
+                                await websocket.send_json({
+                                    "type": "outline_update",
+                                    "outline": course_outline,
+                                    "current_topic_id": conversation.current_topic_id or 1,
+                                    "topics_covered": conversation.topics_covered or [],
+                                })
+                            mode = conversation.session_mode or "assess"
+                            mode_idx = MODE_ORDER.index(mode) if mode in MODE_ORDER else 0
+                            scaffold_mode = mode if mode in SCAFFOLD_PROMPTS else "teach"
+                            await websocket.send_json({
+                                "type": "scaffold_update",
+                                "mode": mode,
+                                "next_mode": mode,
+                                "mode_index": mode_idx,
+                                "observation": SCAFFOLD_PROMPTS[scaffold_mode]["observation"],
+                                "consider": SCAFFOLD_PROMPTS[scaffold_mode]["consider"],
+                            })
+                            continue
 
-                    # Initialize topic tracking
-                    conversation.current_topic_id = 1
-                    conversation.topics_covered = []
-                    conversation.session_mode = start_mode
+                        # Initialize topic tracking
+                        conversation.current_topic_id = 1
+                        conversation.topics_covered = []
+                        conversation.session_mode = start_mode
 
-                    course_title, course_chunks, course_outline = await _load_course_and_chunks(
-                        conversation, "", [], current_topic_id=1
-                    )
+                        course_title, course_chunks, course_outline = await _load_course_and_chunks(
+                            conversation, "", [], current_topic_id=1
+                        )
 
-                    profile = await get_mastery_profile(conversation.user_id, db)
-                    profile_dict = {"thinking_patterns": profile.thinking_patterns, "knowledge_graph": profile.knowledge_graph, "pacing_preferences": profile.pacing_preferences} if profile else None
+                        profile = await get_mastery_profile(conversation.user_id, db)
+                        profile_dict = {"thinking_patterns": profile.thinking_patterns, "knowledge_graph": profile.knowledge_graph, "pacing_preferences": profile.pacing_preferences} if profile else None
 
-                    # If quiz provided calibration, inject it into profile
-                    if teach_depth and profile_dict:
-                        profile_dict["quiz_calibration"] = {
-                            "teach_depth": teach_depth,
-                            "familiarity": familiarity,
-                            "quiz_percentage": quiz_pct,
-                        }
+                        # If quiz provided calibration, inject it into profile
+                        if teach_depth and profile_dict:
+                            profile_dict["quiz_calibration"] = {
+                                "teach_depth": teach_depth,
+                                "familiarity": familiarity,
+                                "quiz_percentage": quiz_pct,
+                            }
 
-                    full_response = ""
-                    try:
-                        async for token in generate_socratic_response(
-                            conversation_history=[], mastery_profile=profile_dict,
-                            course_chunks=course_chunks, session_mode=start_mode,
-                            course_title=course_title,
-                            course_outline=course_outline,
-                            current_topic_id=1,
-                            topics_covered=[],
-                            teach_depth=teach_depth,
-                        ):
-                            full_response += token
-                            await websocket.send_json({"type": "assistant_token", "content": token})
-                    except Exception as e:
-                        logger.error(f"Greeting generation failed: {e}", exc_info=True)
-                        await websocket.send_json({"type": "error", "content": f"Nexi had trouble starting: {str(e)}"})
-                        continue
+                        full_response = ""
+                        try:
+                            async for token in generate_socratic_response(
+                                conversation_history=[], mastery_profile=profile_dict,
+                                course_chunks=course_chunks, session_mode=start_mode,
+                                course_title=course_title,
+                                course_outline=course_outline,
+                                current_topic_id=1,
+                                topics_covered=[],
+                                teach_depth=teach_depth,
+                            ):
+                                full_response += token
+                                await websocket.send_json({"type": "assistant_token", "content": token})
+                        except Exception as e:
+                            logger.error(f"Greeting generation failed: {e}", exc_info=True)
+                            await websocket.send_json({"type": "error", "content": f"Nexi had trouble starting: {str(e)}"})
+                            continue
 
-                    cleaned_response, inline_visuals = _extract_visuals_from_response(full_response)
+                        cleaned_response, inline_visuals = _extract_visuals_from_response(full_response)
 
-                    conversation.messages = [{"role": "assistant", "content": cleaned_response, "timestamp": datetime.now(timezone.utc).isoformat()}]
-                    flag_modified(conversation, "messages")
-                    flag_modified(conversation, "topics_covered")
-                    await db.commit()
+                        conversation.messages = [{"role": "assistant", "content": cleaned_response, "timestamp": datetime.now(timezone.utc).isoformat()}]
+                        flag_modified(conversation, "messages")
+                        flag_modified(conversation, "topics_covered")
+                        await db.commit()
 
-                    await websocket.send_json({"type": "assistant_complete", "content": cleaned_response})
+                        await websocket.send_json({"type": "assistant_complete", "content": cleaned_response})
 
-                    for visual in inline_visuals:
-                        await websocket.send_json({"type": "inline_visual", "visual_type": visual.get("type"), **{k: v for k, v in visual.items() if k != "type"}})
+                        for visual in inline_visuals:
+                            await websocket.send_json({"type": "inline_visual", "visual_type": visual.get("type"), **{k: v for k, v in visual.items() if k != "type"}})
 
-                    if course_outline:
-                        first_section = next((s for s in course_outline if s["id"] == 1), None)
-                        if first_section and first_section.get("visuals"):
-                            for visual in first_section["visuals"]:
-                                await websocket.send_json({"type": "topic_visual", "visual_type": visual.get("type"), **{k: v for k, v in visual.items() if k != "type"}})
+                        if course_outline:
+                            first_section = next((s for s in course_outline if s["id"] == 1), None)
+                            if first_section and first_section.get("visuals"):
+                                for visual in first_section["visuals"]:
+                                    await websocket.send_json({"type": "topic_visual", "visual_type": visual.get("type"), **{k: v for k, v in visual.items() if k != "type"}})
 
-                    if course_outline:
+                        if course_outline:
+                            await websocket.send_json({
+                                "type": "outline_update",
+                                "outline": course_outline,
+                                "current_topic_id": 1,
+                                "topics_covered": [],
+                            })
+
+                        mode_idx = MODE_ORDER.index(start_mode) if start_mode in MODE_ORDER else 0
+                        scaffold_mode = start_mode if start_mode in SCAFFOLD_PROMPTS else "teach"
                         await websocket.send_json({
-                            "type": "outline_update",
-                            "outline": course_outline,
-                            "current_topic_id": 1,
-                            "topics_covered": [],
+                            "type": "scaffold_update",
+                            "mode": start_mode,
+                            "next_mode": start_mode,
+                            "mode_index": mode_idx,
+                            "observation": SCAFFOLD_PROMPTS[scaffold_mode]["observation"],
+                            "consider": SCAFFOLD_PROMPTS[scaffold_mode]["consider"],
                         })
-
-                    mode_idx = MODE_ORDER.index(start_mode) if start_mode in MODE_ORDER else 0
-                    scaffold_mode = start_mode if start_mode in SCAFFOLD_PROMPTS else "teach"
-                    await websocket.send_json({
-                        "type": "scaffold_update",
-                        "mode": start_mode,
-                        "next_mode": start_mode,
-                        "mode_index": mode_idx,
-                        "observation": SCAFFOLD_PROMPTS[scaffold_mode]["observation"],
-                        "consider": SCAFFOLD_PROMPTS[scaffold_mode]["consider"],
-                    })
-                    logger.info(f"Session started in {start_mode.upper()} mode for {conversation_id}: {len(full_response)} chars (quiz={quiz_result is not None})")
+                        logger.info(f"Session started in {start_mode.upper()} mode for {conversation_id}: {len(full_response)} chars (quiz={quiz_result is not None})")
+                finally:
+                    _greeting_in_progress.discard(conv_key)
                 continue
 
             # ── USER MESSAGE: Process, respond, and adaptively evaluate ──

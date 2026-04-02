@@ -185,6 +185,15 @@ export function useVoice(opts?: {
   }, [stopVAD]);
 
   const playAudioBuffer = useCallback(async (audioBuffer: ArrayBuffer) => {
+    // Stop any currently playing audio first to prevent overlap
+    if (audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current.onended = null;
+      audioRef.current.onerror = null;
+      audioRef.current = null;
+      setIsPlaying(false);
+    }
+
     const blob = new Blob([audioBuffer], { type: "audio/mpeg" });
     const url = URL.createObjectURL(blob);
     const audio = new Audio(url);
@@ -198,7 +207,11 @@ export function useVoice(opts?: {
         setIsPlaying(false);
         URL.revokeObjectURL(url);
         clearTimeout(safetyTimer);
-        opts?.onPlaybackEnded?.();
+        // Only call onPlaybackEnded if this is still the active audio
+        if (audioRef.current === audio) {
+          audioRef.current = null;
+          opts?.onPlaybackEnded?.();
+        }
         resolve();
       };
 
@@ -215,7 +228,10 @@ export function useVoice(opts?: {
   const stopAudio = useCallback(() => {
     if (audioRef.current) {
       audioRef.current.pause();
+      audioRef.current.onended = null;
+      audioRef.current.onerror = null;
       audioRef.current.currentTime = 0;
+      audioRef.current = null;
       setIsPlaying(false);
     }
   }, []);

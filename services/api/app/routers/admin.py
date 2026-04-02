@@ -8,7 +8,7 @@ from datetime import datetime, timezone
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, BackgroundTasks
-from sqlalchemy import select, func, update
+from sqlalchemy import select, func, update, delete
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import get_settings
@@ -18,7 +18,7 @@ from app.middleware.tenant import get_current_org_id
 from app.models.user import User, UserRole
 from app.models.course import Course, SourceType, CourseStatus, CourseCategory
 from app.models.enrollment import Enrollment
-from app.models.program import Category, Domain, Capability, FocusSession
+from app.models.program import Category, Domain, Capability, FocusSession, Milestone
 from app.models.course_file import CourseFile
 from app.models.ingestion_job import IngestionJob, IngestionStatus
 from app.models.organization import Organization
@@ -780,13 +780,28 @@ async def analytics_overview(
         .where(User.org_id == org_id)
     )).scalar() or 0
 
-    # Top categories
+    # Top categories — deduplicate by name and compute real enrollment counts
     categories_result = await db.execute(select(Category).where(Category.org_id == org_id))
     categories = categories_result.scalars().all()
-    top_categories = [
-        {"name": c.name, "enrolled": total_learners, "avg_progress": round(c.current_level / max(c.target_level, 0.1) * 100)}
-        for c in categories[:5]
-    ]
+    seen_names: set[str] = set()
+    top_categories = []
+    for c in categories:
+        if c.name in seen_names:
+            continue
+        seen_names.add(c.name)
+        # Count actual enrollments for courses in this category
+        enrolled_count = (await db.execute(
+            select(func.count(Enrollment.id))
+            .join(Course, Enrollment.course_id == Course.id)
+            .where(Course.program_id == c.id)
+        )).scalar() or 0
+        top_categories.append({
+            "name": c.name,
+            "enrolled": enrolled_count,
+            "avg_progress": round(c.current_level / max(c.target_level, 0.1) * 100),
+        })
+        if len(top_categories) >= 5:
+            break
 
     return AnalyticsOverviewResponse(
         total_learners=total_learners,
@@ -886,3 +901,99 @@ async def generate_outline_for_course(
     await db.commit()
 
     return {"outline": outline, "topic_count": len(outline)}
+
+
+# ── DATA RESET — Nuclear option for fresh start ──────────────────────────────
+
+@router.delete("/reset-all-data")
+async def reset_all_data(
+    user: User = Depends(get_current_user),
+    org_id: UUID = Depends(get_current_org_id),
+    db: AsyncSession = Depends(get_db),
+):
+    """Delete ALL courses, enrollments, conversations, categories, embeddings, files, jobs,
+    and mastery profiles for this org. Users and the org itself are preserved.
+    This gives a completely clean slate to start fresh."""
+    _require_admin(user)
+
+    # Get all user IDs in this org (to clean mastery profiles)
+    org_user_ids = (await db.execute(
+        select(User.id).where(User.org_id == org_id)
+    )).scalars().all()
+
+    # Get all course IDs in this org
+    org_course_ids = (await db.execute(
+        select(Course.id).where(Course.org_id == org_id)
+    )).scalars().all()
+
+    # Get all category IDs in this org
+    org_category_ids = (await db.execute(
+        select(Category.id).where(Category.org_id == org_id)
+    )).scalars().all()
+
+    # Get domain IDs for cascade
+    org_domain_ids = (await db.execute(
+        select(Domain.id).where(Domain.program_id.in_(org_category_ids))
+    )).scalars().all() if org_category_ids else []
+
+    deleted = {}
+
+    # 1. Conversations (depends on course + user)
+    r = await db.execute(delete(Conversation).where(Conversation.course_id.in_(org_course_ids))) if org_course_ids else None
+    deleted["conversations"] = r.rowcount if r else 0
+
+    # 2. Enrollments (depends on course + user)
+    r = await db.execute(delete(Enrollment).where(Enrollment.course_id.in_(org_course_ids))) if org_course_ids else None
+    deleted["enrollments"] = r.rowcount if r else 0
+
+    # 3. Content embeddings (depends on course)
+    r = await db.execute(delete(ContentEmbedding).where(ContentEmbedding.course_id.in_(org_course_ids))) if org_course_ids else None
+    deleted["content_embeddings"] = r.rowcount if r else 0
+
+    # 4. Course files
+    r = await db.execute(delete(CourseFile).where(CourseFile.org_id == org_id))
+    deleted["course_files"] = r.rowcount
+
+    # 5. Ingestion jobs
+    r = await db.execute(delete(IngestionJob).where(IngestionJob.org_id == org_id))
+    deleted["ingestion_jobs"] = r.rowcount
+
+    # 6. Capabilities (depends on domain)
+    r = await db.execute(delete(Capability).where(Capability.domain_id.in_(org_domain_ids))) if org_domain_ids else None
+    deleted["capabilities"] = r.rowcount if r else 0
+
+    # 7. Domains (depends on category)
+    r = await db.execute(delete(Domain).where(Domain.program_id.in_(org_category_ids))) if org_category_ids else None
+    deleted["domains"] = r.rowcount if r else 0
+
+    # 8. Milestones (depends on category)
+    r = await db.execute(delete(Milestone).where(Milestone.program_id.in_(org_category_ids))) if org_category_ids else None
+    deleted["milestones"] = r.rowcount if r else 0
+
+    # 9. Focus sessions (depends on category)
+    r = await db.execute(delete(FocusSession).where(FocusSession.program_id.in_(org_category_ids))) if org_category_ids else None
+    deleted["focus_sessions"] = r.rowcount if r else 0
+
+    # 10. Courses (set program_id to null first to avoid FK issues, then delete)
+    if org_course_ids:
+        await db.execute(update(Course).where(Course.id.in_(org_course_ids)).values(program_id=None))
+        r = await db.execute(delete(Course).where(Course.id.in_(org_course_ids)))
+        deleted["courses"] = r.rowcount
+    else:
+        deleted["courses"] = 0
+
+    # 11. Categories (programs)
+    r = await db.execute(delete(Category).where(Category.org_id == org_id))
+    deleted["categories"] = r.rowcount
+
+    # 12. Mastery profiles (depends on user)
+    r = await db.execute(delete(MasteryProfile).where(MasteryProfile.user_id.in_(org_user_ids))) if org_user_ids else None
+    deleted["mastery_profiles"] = r.rowcount if r else 0
+
+    await db.commit()
+
+    return {
+        "status": "success",
+        "message": "All course data wiped. You can now start fresh.",
+        "deleted": deleted,
+    }

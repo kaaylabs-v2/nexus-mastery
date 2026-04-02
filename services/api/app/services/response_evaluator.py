@@ -13,8 +13,8 @@ settings = get_settings()
 
 MODE_ORDER = ["assess", "teach", "check_understanding", "challenge", "apply", "reflect"]
 
-MAX_EXCHANGES_PER_MODE = 5
-MIN_EXCHANGES_PER_MODE = 1
+MAX_EXCHANGES_PER_MODE = 6
+MIN_EXCHANGES_PER_MODE = 2
 
 # ─── Assessment Prompt (session start) ───
 
@@ -27,7 +27,7 @@ Given the learner's response, determine their familiarity level and return ONLY 
     "skip_to_mode": "teach" | "check_understanding" | "challenge",
     "teach_depth": "foundational" | "intermediate" | "advanced",
     "reason": "one sentence explaining your assessment",
-    "learner_insight": "one sentence about what you observed about how this person communicates or thinks"
+    "learner_insight": "one sentence about how this person learns, written in plain everyday language a non-technical person would understand. Example: 'You pick things up faster when you can connect them to real examples from your own work.' NOT academic jargon like 'demonstrates synthesis opportunities in zero-sum framing.'"
 }
 
 Rules:
@@ -57,7 +57,7 @@ Evaluate the learner's response and return ONLY valid JSON:
     "engagement": "high" | "medium" | "low",
     "decision": "advance" | "stay" | "retreat",
     "reason": "one sentence explaining your decision",
-    "learner_insight": "one sentence about what you observed about HOW this person thinks (not just what they know)"
+    "learner_insight": "one sentence about how this person learns, written in plain everyday language. Example: 'You tend to understand things better when you can see a real-world example first.' NOT academic language like 'exhibits pattern recognition in cross-domain synthesis.'"
 }
 
 Decision rules:
@@ -76,11 +76,16 @@ Use the learner's mastery profile to calibrate:
 
 The "learner_insight" field is important — this gets accumulated and fed back into the user-level mastery profile at session end.
 
+CRITICAL — Passive responses:
+- Responses like "yes", "yeah", "got it", "makes sense", "okay", "sure", "mhmm", "I understand" are PASSIVE. They do NOT demonstrate understanding.
+- In ANY mode, a passive response should NEVER trigger "advance". At most it should be "stay".
+- Only advance when the learner provides SUBSTANTIVE evidence: explains in their own words, answers a specific question correctly, works through a scenario, or asks an insightful question that shows they understood.
+
 Special cases:
-- In TEACH mode: advance if learner asks insightful questions or shows they're following. Stay if they're passive. Retreat doesn't apply (already at first teaching mode).
-- In CHECK UNDERSTANDING: advance if they can explain the concept correctly. Stay if partially correct. Retreat to teach if fundamentally wrong.
-- In CHALLENGE: advance if they handle edge cases well. Stay if they need more practice. Retreat to check_understanding if they've lost the basics.
-- In APPLY: advance if they work through the scenario competently. Stay if they need coaching. Retreat to challenge if they can't apply at all.
+- In TEACH mode: advance ONLY if learner gives a substantive response (asks a good question, makes a connection, explains something). Stay if they're passive ("yes", "got it", "makes sense"). Retreat doesn't apply.
+- In CHECK UNDERSTANDING: advance ONLY if they can explain the concept in their own words or answer a specific question correctly. Stay if partially correct or passive. Retreat to teach if fundamentally wrong.
+- In CHALLENGE: advance if they handle edge cases with correct reasoning. Stay if they need more practice. Retreat to check_understanding if they've lost the basics.
+- In APPLY: advance if they work through the scenario with correct steps. Stay if they need coaching. Retreat to challenge if they can't apply at all.
 - In REFLECT: always stay (it's the final mode). If reflection is shallow, prompt deeper."""
 
 

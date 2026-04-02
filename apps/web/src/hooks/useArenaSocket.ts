@@ -130,20 +130,24 @@ export function useArenaSocket(): UseArenaSocketReturn {
 
     ws.onopen = () => {
       setIsConnected(true);
-      // Signal session start — server generates ONE greeting
-      // Guard against React Strict Mode sending this twice
-      if (isRealId && !hasGreetedRef.current) {
+      if (!isRealId) return;
+
+      if (!hasGreetedRef.current) {
+        // New session — send session_start to trigger Nexi's greeting
         hasGreetedRef.current = true;
         const startPayload: Record<string, unknown> = { type: "session_start" };
         if (quizResult) {
           startPayload.quiz_result = quizResult;
-          // If quiz was taken, set mode based on quiz results
           const startMode = quizResult.skip_to_mode === "challenge" ? "challenge" : "teach";
           setCurrentMode(startMode);
         }
         ws.send(JSON.stringify(startPayload));
         setIsStreaming(true);
         startResponseTimeout();
+      } else {
+        // Resumed session — request outline/scaffold state without triggering a new greeting
+        // Server handles this gracefully: sends outline_update + scaffold_update for existing sessions
+        ws.send(JSON.stringify({ type: "session_start" }));
       }
     };
     ws.onclose = () => setIsConnected(false);

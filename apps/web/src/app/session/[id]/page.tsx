@@ -80,13 +80,11 @@ const stageInsights: Record<string, { insight: string; prompts: string[] }> = {
 };
 
 function getAutoReadPref(): boolean {
-  if (typeof window === "undefined") return true;
+  if (typeof window === "undefined") return false;
   try {
     const val = localStorage.getItem("arena-auto-read");
-    return val === null ? true : val === "true";
-  } catch {
-    return true;
-  }
+    return val === "true"; // default false if null
+  } catch { return false; }
 }
 
 function NexiAvatar() {
@@ -128,6 +126,9 @@ export default function ArenaSessionPage() {
   // Voice mode: when enabled, auto-records → VAD detects silence → sends to STT → sends message → TTS plays → auto-records again
   const voiceModeRef = useRef(false);
   const [isTranscribing, setIsTranscribing] = useState(false);
+  // Guard: don't auto-read messages that were loaded as part of session resume
+  const sessionReadyRef = useRef(false);
+  const readMessagesRef = useRef<Set<string>>(new Set());
 
   const handleVoiceBlob = useCallback(async (blob: Blob) => {
     if (blob.size === 0) return;
@@ -139,10 +140,14 @@ export default function ArenaSessionPage() {
         sendMessage(transcript.trim());
       } else if (voiceModeRef.current) {
         // No speech detected — re-listen
-        setTimeout(() => { if (voiceModeRef.current) voiceStartRecording(); }, 300);
+        setTimeout(() => { if (voiceModeRef.current) voiceStartRecordingRef.current(); }, 300);
       }
     } catch (err) {
       console.error("[STT] Transcription failed:", err);
+      // Re-listen if in voice mode so the loop doesn't die on STT errors
+      if (voiceModeRef.current) {
+        setTimeout(() => { if (voiceModeRef.current) voiceStartRecordingRef.current(); }, 500);
+      }
     }
     setIsTranscribing(false);
   }, [sendMessage]);
@@ -245,12 +250,19 @@ export default function ArenaSessionPage() {
   }, [params?.id, connect, loadExistingMessages]);
   useEffect(() => { messagesEndRef.current?.scrollIntoView({ behavior: "smooth" }); }, [liveMessages, streamingContent]);
 
-  // Auto-read ALL Nexi messages when voice is on
+  // Wait for session to load existing messages before allowing auto-read
   useEffect(() => {
-    if (!autoRead) return;
+    const timer = setTimeout(() => { sessionReadyRef.current = true; }, 2000);
+    return () => clearTimeout(timer);
+  }, []);
+
+  // Auto-read new Nexi messages when voice/auto-read is on (skip resumed messages)
+  useEffect(() => {
+    if (!autoRead || !sessionReadyRef.current) return;
     const lastMsg = liveMessages[liveMessages.length - 1];
     if (!lastMsg || lastMsg.role !== "nexi") return;
-    if (playingMsgId === lastMsg.id) return;
+    if (readMessagesRef.current.has(lastMsg.id)) return;
+    readMessagesRef.current.add(lastMsg.id);
     playTTS(lastMsg.id, lastMsg.content);
   }, [liveMessages, autoRead]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -297,12 +309,15 @@ export default function ArenaSessionPage() {
       setVoiceMode(false);
       stopTTS();
     } else {
-      // Enter voice mode — enable auto-read and start listening
+      // Stop any playing audio first to prevent mic picking up TTS
+      stopTTS();
       setVoiceMode(true);
       setAutoRead(true);
-      localStorage.setItem("arena-auto-read", "true");
-      // Start listening immediately
-      setTimeout(() => voiceStartRecording(), 200);
+      try { localStorage.setItem("arena-auto-read", "true"); } catch {}
+      // Mark session ready so auto-read works from this point
+      sessionReadyRef.current = true;
+      // Wait for audio to fully stop before opening mic
+      setTimeout(() => voiceStartRecording(), 500);
     }
   }, [voiceMode, setVoiceMode, stopTTS, voiceStartRecording]);
 
@@ -386,7 +401,7 @@ export default function ArenaSessionPage() {
   const currentPhaseIndex = stages.findIndex((s) => s.key === activeStage);
   const scorePercent = courseOutline.length > 0
     ? Math.min(Math.round((topicsCovered.length / courseOutline.length) * 100), 100)
-    : Math.min(Math.round(((currentPhaseIndex + 1) / totalPhases) * 100), 100);
+    : 0; // Show 0% until course outline loads — don't guess from phase index
   const currentInsight = stageInsights[activeStage] || stageInsights.teach;
   const scaffoldObservation = scaffold?.observation || currentInsight.insight;
   const scaffoldPrompts = scaffold?.consider || currentInsight.prompts;
@@ -566,23 +581,34 @@ export default function ArenaSessionPage() {
 
       {/* Center Panel — Chat */}
       <div className="flex flex-1 flex-col min-w-0">
-        <div className="flex items-center gap-2.5 border-b border-border/60 bg-card px-5 py-3.5">
-          {stages.map((stage) => {
-            const isActive = stage.key === activeStage;
-            return (
-              <span key={stage.key} className={cn("rounded-full px-3.5 py-1.5 text-sm font-medium transition-all", isActive ? "text-white shadow-sm" : "bg-muted/70 text-muted-foreground")}
-                style={isActive ? { backgroundColor: stageColors[stage.key] } : undefined}>
-                {stage.label}
-              </span>
-            );
-          })}
-          {courseOutline.length > 0 && currentTopicId && (
-            <>
-              <span className="h-4 w-px bg-border/60" />
-              <span className="text-sm text-muted-foreground truncate max-w-[200px]">
-                {courseOutline.find(s => s.id === currentTopicId)?.title || ""}
-              </span>
-            </>
+        <div className="flex items-center gap-2.5 border-b border-border/60 bg-card px-5 py-3.5 overflow-x-auto scrollbar-none">
+          {courseOutline.length > 0 ? (
+            /* Show course topics when outline is available */
+            courseOutline.map((section) => {
+              const isCurrent = section.id === currentTopicId;
+              const isCovered = topicsCovered.includes(section.id);
+              return (
+                <span key={section.id} className={cn(
+                  "rounded-full px-3.5 py-1.5 text-sm font-medium transition-all whitespace-nowrap shrink-0",
+                  isCurrent ? "text-white shadow-sm bg-primary" :
+                  isCovered ? "bg-primary/15 text-primary" :
+                  "bg-muted/70 text-muted-foreground"
+                )}>
+                  {isCovered && !isCurrent ? "✓ " : ""}{section.title}
+                </span>
+              );
+            })
+          ) : (
+            /* Fallback to teaching phase labels when no outline */
+            stages.map((stage) => {
+              const isActive = stage.key === activeStage;
+              return (
+                <span key={stage.key} className={cn("rounded-full px-3.5 py-1.5 text-sm font-medium transition-all whitespace-nowrap shrink-0", isActive ? "text-white shadow-sm" : "bg-muted/70 text-muted-foreground")}
+                  style={isActive ? { backgroundColor: stageColors[stage.key] } : undefined}>
+                  {stage.label}
+                </span>
+              );
+            })
           )}
 
           <div className="ml-auto flex items-center gap-3">
@@ -600,7 +626,9 @@ export default function ArenaSessionPage() {
           </div>
         </div>
 
-        <div className="flex-1 overflow-y-auto px-8 py-6 space-y-5 scrollbar-none scroll-smooth bg-background">
+        <div className="flex-1 overflow-y-auto px-8 py-6 scrollbar-none scroll-smooth bg-background flex flex-col">
+          <div className="flex-1" /> {/* Spacer pushes messages to bottom when content is short */}
+          <div className="space-y-5">
           {allMessages.map((msg) => {
             // Check if this is a visual message
             let visualData: Record<string, unknown> | null = null;
@@ -611,15 +639,22 @@ export default function ArenaSessionPage() {
 
             if (visualData) {
               const vType = visualData.type as string;
+              let visualComponent: React.ReactNode = null;
+              if (vType === "mermaid" && visualData.content) {
+                visualComponent = <MermaidDiagram content={visualData.content as string} title={visualData.title as string} caption={visualData.caption as string} />;
+              } else if (vType === "chart" && visualData.data) {
+                visualComponent = <DataChart chart_type={(visualData.chart_type as "bar" | "pie" | "line") || "bar"} data={visualData.data as Array<{ name: string; value: number }>} title={visualData.title as string} caption={visualData.caption as string} />;
+              } else if (vType === "table" && visualData.headers && visualData.rows) {
+                visualComponent = <ComparisonTable headers={visualData.headers as string[]} rows={visualData.rows as string[][]} title={visualData.title as string} caption={visualData.caption as string} />;
+              } else if (vType === "mermaid") {
+                // Mermaid without content — show the title/caption at least
+                visualComponent = <MermaidDiagram content={String(visualData.content || "graph TD\n  A[No diagram data]")} title={visualData.title as string} caption={visualData.caption as string} />;
+              }
+              // Skip rendering if no visual component could be created
+              if (!visualComponent) return null;
               return (
                 <motion.div key={msg.id} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }} className="max-w-[80%]">
-                  {vType === "mermaid" && visualData.content ? (
-                    <MermaidDiagram content={visualData.content as string} title={visualData.title as string} caption={visualData.caption as string} />
-                  ) : vType === "chart" && visualData.data ? (
-                    <DataChart chart_type={(visualData.chart_type as "bar" | "pie" | "line") || "bar"} data={visualData.data as Array<{ name: string; value: number }>} title={visualData.title as string} caption={visualData.caption as string} />
-                  ) : vType === "table" && visualData.headers && visualData.rows ? (
-                    <ComparisonTable headers={visualData.headers as string[]} rows={visualData.rows as string[][]} title={visualData.title as string} caption={visualData.caption as string} />
-                  ) : null}
+                  {visualComponent}
                 </motion.div>
               );
             }
@@ -698,6 +733,7 @@ export default function ArenaSessionPage() {
             </div>
           )}
           <div ref={messagesEndRef} />
+          </div> {/* end space-y-5 messages container */}
         </div>
 
         {sessionComplete && assessment ? (

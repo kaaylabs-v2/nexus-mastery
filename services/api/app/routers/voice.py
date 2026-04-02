@@ -1,5 +1,5 @@
 import base64
-from fastapi import APIRouter, Depends, WebSocket, WebSocketDisconnect, Query, UploadFile, File
+from fastapi import APIRouter, Depends, HTTPException, WebSocket, WebSocketDisconnect, Query, UploadFile, File
 from fastapi.responses import Response, JSONResponse
 from pydantic import BaseModel
 from sqlalchemy import select
@@ -38,16 +38,28 @@ async def tts_endpoint(
     user: User = Depends(get_current_user),
 ):
     """Convert text to speech. Returns audio/mpeg bytes."""
-    audio_chunks = []
-    async for chunk in text_to_speech(request.text[:2000]):
-        audio_chunks.append(chunk)
+    try:
+        audio_chunks = []
+        async for chunk in text_to_speech(request.text[:2000]):
+            audio_chunks.append(chunk)
 
-    audio_bytes = b"".join(audio_chunks)
-    return Response(
-        content=audio_bytes,
-        media_type="audio/mpeg",
-        headers={"Content-Disposition": "inline"},
-    )
+        audio_bytes = b"".join(audio_chunks)
+        if not audio_bytes:
+            raise HTTPException(503, "Voice service returned no audio")
+        return Response(
+            content=audio_bytes,
+            media_type="audio/mpeg",
+            headers={"Content-Disposition": "inline"},
+        )
+    except HTTPException:
+        raise
+    except Exception as e:
+        error_msg = str(e)
+        if "401" in error_msg or "Unauthorized" in error_msg:
+            raise HTTPException(503, "Voice service API key is invalid or expired")
+        if "quota" in error_msg.lower() or "limit" in error_msg.lower() or "402" in error_msg:
+            raise HTTPException(503, "Voice service quota exhausted — text-to-speech is temporarily unavailable")
+        raise HTTPException(503, f"Voice service unavailable: {error_msg[:100]}")
 
 settings = get_settings()
 

@@ -167,6 +167,8 @@ class ApiClient {
       session_type: string;
       session_mode: string;
       messages: Array<{ role: string; content: string; timestamp: string }>;
+      current_topic_id: number | null;
+      topics_covered: number[] | null;
     }>(`/api/conversations/${id}`);
   }
 
@@ -363,6 +365,7 @@ class ApiClient {
 
   // TTS
   async textToSpeech(text: string): Promise<ArrayBuffer> {
+    await this.ensureToken();
     const headers: Record<string, string> = {
       "Content-Type": "application/json",
     };
@@ -373,7 +376,7 @@ class ApiClient {
       headers,
       body: JSON.stringify({ text: text.slice(0, 2000) }),
     });
-    if (!response.ok) throw new Error("TTS failed");
+    if (!response.ok) throw new Error(`TTS failed: ${response.status}`);
     return response.arrayBuffer();
   }
 
