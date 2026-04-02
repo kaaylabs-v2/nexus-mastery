@@ -1,6 +1,20 @@
+import re
 import anthropic
 from typing import AsyncGenerator
 from app.core.config import get_settings
+
+
+def sanitize_for_prompt(text: str, max_length: int = 500) -> str:
+    """Remove potential prompt injection from user-provided content."""
+    if not text:
+        return ""
+    text = text[:max_length]
+    text = re.sub(r'(?i)(ignore|disregard|forget)\s+(all\s+)?(previous|above|prior)\s+(instructions?|rules?|prompts?)', '[REMOVED]', text)
+    text = re.sub(r'(?i)you\s+are\s+now\s+', '[REMOVED] ', text)
+    text = re.sub(r'(?i)system\s*prompt', '[REMOVED]', text)
+    text = re.sub(r'(?i)act\s+as\s+', '[REMOVED] ', text)
+    text = re.sub(r'</?(?:system|user|assistant|human|claude)[^>]*>', '', text, flags=re.IGNORECASE)
+    return text.strip()
 
 NEXI_SYSTEM_PROMPT = """You are Nexi, a warm and brilliant personal tutor. You genuinely care about your learner's growth. Think of yourself as the best teacher they've ever had — patient, encouraging, clear, and conversational.
 
@@ -292,7 +306,11 @@ async def generate_socratic_response(
     model = _select_model(session_type, session_mode)
 
     # More tokens for teaching modes (need room for explanation + visual)
-    max_tokens = 800 if session_mode in SONNET_MODES else 400
+    _token_limits = {
+        "assess": 800, "teach": 1200, "check_understanding": 1000,
+        "challenge": 1200, "apply": 1200, "reflect": 800,
+    }
+    max_tokens = _token_limits.get(session_mode, 1000)
 
     # If teach_depth from quiz, inject into history so _build_messages picks it up
     if teach_depth and not any(m.get("_teach_depth") for m in conversation_history):

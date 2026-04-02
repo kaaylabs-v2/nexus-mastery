@@ -77,5 +77,36 @@ async def verify_token(
         )
     except Exception as e:
         raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED, detail=f"Auth error: {e}"
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="Authentication failed"
         )
+
+
+async def verify_ws_token(token: str | None) -> dict:
+    """Verify a token from a WebSocket query parameter. Returns payload or raises."""
+    if not token:
+        raise ValueError("Missing authentication token")
+
+    settings_local = get_settings()
+
+    if settings_local.DEV_AUTH and token.startswith("dev:"):
+        return {"sub": token[4:]}
+
+    try:
+        jwks = await _get_jwks()
+        unverified_header = jwt.get_unverified_header(token)
+        rsa_key = {}
+        for key in jwks.get("keys", []):
+            if key["kid"] == unverified_header.get("kid"):
+                rsa_key = {"kty": key["kty"], "kid": key["kid"], "use": key["use"], "n": key["n"], "e": key["e"]}
+                break
+        if not rsa_key:
+            raise ValueError("Invalid token key")
+        payload = jwt.decode(
+            token, jwt.algorithms.RSAAlgorithm.from_jwk(rsa_key),
+            algorithms=[settings_local.AUTH0_ALGORITHMS],
+            audience=settings_local.AUTH0_API_AUDIENCE,
+            issuer=f"https://{settings_local.AUTH0_DOMAIN}/",
+        )
+        return payload
+    except Exception:
+        raise ValueError("Invalid or expired token")

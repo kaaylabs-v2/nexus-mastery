@@ -114,7 +114,7 @@ async def get_course_outline(
     user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    result = await db.execute(select(Course).where(Course.id == course_id))
+    result = await db.execute(select(Course).where(Course.id == course_id, Course.org_id == user.org_id))
     course = result.scalar_one_or_none()
     if not course:
         raise HTTPException(status_code=404, detail="Course not found")
@@ -162,7 +162,7 @@ async def get_placement_quiz(
     db: AsyncSession = Depends(get_db),
 ):
     """Generate a placement quiz for a course to assess the learner's starting level."""
-    result = await db.execute(select(Course).where(Course.id == course_id))
+    result = await db.execute(select(Course).where(Course.id == course_id, Course.org_id == user.org_id))
     course = result.scalar_one_or_none()
     if not course:
         raise HTTPException(status_code=404, detail="Course not found")
@@ -190,7 +190,7 @@ async def submit_quiz(
     db: AsyncSession = Depends(get_db),
 ):
     """Score a completed placement quiz and return the learner's assessed level."""
-    result = await db.execute(select(Course).where(Course.id == course_id))
+    result = await db.execute(select(Course).where(Course.id == course_id, Course.org_id == user.org_id))
     course = result.scalar_one_or_none()
     if not course:
         raise HTTPException(status_code=404, detail="Course not found")
@@ -208,7 +208,7 @@ async def generate_thumbnail(
     db: AsyncSession = Depends(get_db),
 ):
     """Generate an AI thumbnail for a course using DALL-E 3."""
-    result = await db.execute(select(Course).where(Course.id == course_id))
+    result = await db.execute(select(Course).where(Course.id == course_id, Course.org_id == user.org_id))
     course = result.scalar_one_or_none()
     if not course:
         raise HTTPException(status_code=404, detail="Course not found")

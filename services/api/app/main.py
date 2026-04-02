@@ -30,6 +30,9 @@ app.add_middleware(
     allow_headers=["Authorization", "Content-Type"],
 )
 
+from app.middleware.audit_log import AuditLogMiddleware
+app.add_middleware(AuditLogMiddleware)
+
 app.include_router(auth.router)
 app.include_router(courses.router)
 app.include_router(conversations.router)

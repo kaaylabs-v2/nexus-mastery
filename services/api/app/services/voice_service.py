@@ -40,7 +40,22 @@ async def transcribe_audio(audio_bytes: bytes) -> str:
 
 
 async def text_to_speech(text: str) -> AsyncGenerator[bytes, None]:
-    """Convert text to speech audio using ElevenLabs streaming."""
+    """Convert text to speech. Tries ElevenLabs first, falls back to OpenAI TTS."""
+    try:
+        async for chunk in _elevenlabs_tts(text):
+            yield chunk
+    except Exception as e:
+        import logging
+        logging.getLogger(__name__).warning(f"ElevenLabs TTS failed ({e}), trying OpenAI fallback")
+        audio = await _openai_tts(text)
+        if audio:
+            yield audio
+        else:
+            raise
+
+
+async def _elevenlabs_tts(text: str) -> AsyncGenerator[bytes, None]:
+    """ElevenLabs streaming TTS."""
     async with httpx.AsyncClient() as client:
         async with client.stream(
             "POST",
@@ -64,6 +79,24 @@ async def text_to_speech(text: str) -> AsyncGenerator[bytes, None]:
             response.raise_for_status()
             async for chunk in response.aiter_bytes(1024):
                 yield chunk
+
+
+async def _openai_tts(text: str) -> bytes | None:
+    """OpenAI TTS fallback."""
+    openai_key = settings.OPENAI_API_KEY
+    if not openai_key:
+        return None
+    try:
+        async with httpx.AsyncClient(timeout=30.0) as client:
+            response = await client.post(
+                "https://api.openai.com/v1/audio/speech",
+                headers={"Authorization": f"Bearer {openai_key}"},
+                json={"model": "tts-1", "voice": "nova", "input": text[:4096], "response_format": "mp3"},
+            )
+            response.raise_for_status()
+            return response.content
+    except Exception:
+        return None
 
 
 async def conversational_session(websocket) -> None:

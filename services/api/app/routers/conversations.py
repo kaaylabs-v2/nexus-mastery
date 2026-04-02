@@ -245,6 +245,27 @@ def _detect_topic_transition(
     return current_topic_id, topics_covered
 
 
+MAX_MESSAGES_PER_SESSION = 200
+
+
+def _validate_outline(outline: list | None) -> list:
+    """Validate and clean course outline data."""
+    if not outline or not isinstance(outline, list):
+        return []
+    seen_ids: set[int] = set()
+    valid = []
+    for section in outline:
+        if not isinstance(section, dict):
+            continue
+        sid = section.get("id")
+        title = section.get("title", "")
+        if sid is None or not title.strip() or sid in seen_ids:
+            continue
+        seen_ids.add(sid)
+        valid.append(section)
+    return valid
+
+
 def _extract_visuals_from_response(response: str) -> tuple[str, list[dict]]:
     """Extract [VISUAL:...] blocks from Nexi's response."""
     visuals = []
@@ -453,10 +474,28 @@ async def conversation_stream(
     websocket: WebSocket,
     conversation_id: UUID,
 ):
+    import logging
+    import time as _time
+    logger = logging.getLogger(__name__)
+
+    # ── WebSocket Authentication ──
+    token = websocket.query_params.get("token")
+    if not token:
+        await websocket.close(code=4001, reason="Missing authentication token")
+        return
+    try:
+        from app.core.security import verify_ws_token
+        token_payload = await verify_ws_token(token)
+        ws_user_sub = token_payload.get("sub")
+    except Exception:
+        await websocket.close(code=4003, reason="Invalid token")
+        return
+
     await websocket.accept()
 
-    import logging
-    logger = logging.getLogger(__name__)
+    # ── Rate limiting state ──
+    _last_msg_time = 0.0
+    _msg_window: list[float] = []
 
     async def _load_course_and_chunks(conversation, user_content, messages, current_topic_id=None):
         """Load course info, outline, and RAG chunks."""
@@ -496,8 +535,8 @@ async def conversation_stream(
                 course_chunks = await retrieve_relevant(
                     rag_query, conversation.course_id, db_rag, top_k=5
                 )
-        except Exception:
-            pass
+        except Exception as rag_err:
+            logger.warning(f"RAG retrieval failed for course {conversation.course_id}: {rag_err}")
 
         if not course_chunks and course_title:
             course_chunks = [f"Course: {course_title}\nDescription: {course_description or ''}"]
@@ -507,6 +546,24 @@ async def conversation_stream(
     try:
         while True:
             data = await websocket.receive_text()
+
+            # ── Message size limit ──
+            if len(data) > 10_000:
+                await websocket.send_json({"type": "error", "content": "Message too long (max 10,000 characters)."})
+                continue
+
+            # ── Rate limiting ──
+            _now = _time.time()
+            _msg_window = [t for t in _msg_window if _now - t < 60]
+            _msg_window.append(_now)
+            if len(_msg_window) > 30:
+                await websocket.send_json({"type": "error", "content": "Too many messages. Please slow down."})
+                continue
+            if _now - _last_msg_time < 0.5:
+                await websocket.send_json({"type": "error", "content": "Please wait before sending another message."})
+                continue
+            _last_msg_time = _now
+
             message = json.loads(data)
             msg_type = message.get("type", "")
 
@@ -654,6 +711,15 @@ async def conversation_stream(
                 user_content = message.get("content", "").strip()
                 if not user_content:
                     continue
+
+                # Message cap check
+                async with async_session() as db_check:
+                    conv_check = (await db_check.execute(
+                        select(Conversation).where(Conversation.id == conversation_id)
+                    )).scalar_one_or_none()
+                    if conv_check and len(conv_check.messages or []) >= MAX_MESSAGES_PER_SESSION:
+                        await websocket.send_json({"type": "system_note", "content": "This session has reached its message limit. Please start a new session."})
+                        continue
 
                 await websocket.send_json({"type": "message_received", "content": user_content})
 
