@@ -162,3 +162,31 @@
   0%, 100% { transform: translateY(0px); }
   50% { transform: translateY(-4px); }
 }
+
+@keyframes fade-in-fast {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Arena design system utilities */
+@layer utilities {
+  .shadow-soft {
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04), 0 1px 2px rgba(0, 0, 0, 0.02);
+  }
+  .shadow-lifted {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06), 0 1px 3px rgba(0, 0, 0, 0.04);
+  }
+  .scrollbar-thin::-webkit-scrollbar {
+    width: 4px;
+  }
+  .scrollbar-thin::-webkit-scrollbar-thumb {
+    background: hsl(var(--muted-foreground) / 0.15);
+    border-radius: 2px;
+  }
+  .scrollbar-thin::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  .animate-fade-in-fast {
+    animation: fade-in-fast 200ms ease-out both;
+  }
+}
