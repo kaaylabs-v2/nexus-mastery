@@ -4,7 +4,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
-import { Send, Mic, MicOff, Lightbulb, Layout, HelpCircle, Check, ChevronDown, X, Volume2, VolumeX, CheckCircle2, BookOpen, AudioLines } from "lucide-react";
+import { Send, Mic, MicOff, Lightbulb, Layout, HelpCircle, Check, ChevronDown, X, Volume2, VolumeX, CheckCircle2, BookOpen, AudioLines, Copy, BookMarked } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { SessionStepper } from "@/components/ui/session-stepper";
 import { InsightBanner } from "@/components/ui/insight-banner";
@@ -18,6 +18,8 @@ import { DataChart } from "@/components/ui/data-chart";
 import { ComparisonTable } from "@/components/ui/comparison-table";
 import { getStudioPanel, type CourseCategory } from "@/components/session/studio-panels";
 import { PlacementQuiz, type QuizQuestion, type QuizResult } from "@/components/session/placement-quiz";
+import { FollowUpChips } from "@/components/workspace/FollowUpChips";
+import { apiClient as notebookClient } from "@/lib/api-client";
 
 const MermaidDiagram = dynamic(
   () => import("@/components/ui/mermaid-diagram").then((m) => m.MermaidDiagram),
@@ -690,11 +692,42 @@ export default function ArenaSessionPage() {
                     </div>
                   )}
                   {msg.role === "nexi" ? (
-                    <div className="prose max-w-none text-foreground [&>p]:mb-3 [&>p]:text-[15px] [&>p]:leading-[1.75] [&>ul]:text-[15px] [&>ul]:leading-[1.75] [&>ol]:text-[15px] [&>ol]:leading-[1.75] [&>h1]:text-lg [&>h2]:text-base [&>h3]:text-[15px] [&>h3]:font-semibold">
-                      <ReactMarkdown>{msg.content}</ReactMarkdown>
-                    </div>
+                    <>
+                      <div className="prose max-w-none text-foreground [&>p]:mb-3 [&>p]:text-[15px] [&>p]:leading-[1.75] [&>ul]:text-[15px] [&>ul]:leading-[1.75] [&>ol]:text-[15px] [&>ol]:leading-[1.75] [&>h1]:text-lg [&>h2]:text-base [&>h3]:text-[15px] [&>h3]:font-semibold">
+                        <ReactMarkdown>{msg.content}</ReactMarkdown>
+                      </div>
+                      {/* Action buttons: Copy + Save to Notebook */}
+                      <div className="flex items-center gap-2 mt-3 pt-2 border-t border-border/30 opacity-0 group-hover/msg:opacity-100 transition-opacity">
+                        <button
+                          onClick={() => { navigator.clipboard.writeText(msg.content); }}
+                          className="inline-flex items-center gap-1 text-[11px] text-muted-foreground hover:text-foreground px-2 py-1 rounded hover:bg-accent transition-colors"
+                        >
+                          <Copy className="h-3 w-3" /> Copy
+                        </button>
+                        <button
+                          onClick={async () => {
+                            try {
+                              await notebookClient.createNote({
+                                title: msg.content.slice(0, 50).replace(/\n/g, " "),
+                                content: msg.content,
+                                course_id: conversationIdRef.current ? undefined : undefined,
+                                tags: ["nexi"],
+                                source: "nexi",
+                              });
+                            } catch { /* silent */ }
+                          }}
+                          className="inline-flex items-center gap-1 text-[11px] text-muted-foreground hover:text-foreground px-2 py-1 rounded hover:bg-accent transition-colors"
+                        >
+                          <BookMarked className="h-3 w-3" /> Save to Notebook
+                        </button>
+                      </div>
+                    </>
                   ) : msg.content}
                 </div>
+                {/* Follow-up chips after the last Nexi message */}
+                {msg.role === "nexi" && msg === allMessages[allMessages.length - 1] && !isStreaming && (
+                  <FollowUpChips onSelect={(text) => sendMessage(text)} disabled={isStreaming} />
+                )}
                 <p className={cn("mt-1.5 text-xs text-muted-foreground/60", msg.role === "user" ? "text-right" : "")}>{msg.timestamp}</p>
               </motion.div>
             );
