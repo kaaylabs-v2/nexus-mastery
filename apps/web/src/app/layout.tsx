@@ -1,10 +1,21 @@
 import type { Metadata } from "next";
-// Auth0Provider will be added when real auth is configured
+import { Inter, Playfair_Display } from "next/font/google";
 import { Sidebar } from "@/components/layout/sidebar";
-// GlobalContextBar removed — was showing generic category data on every page
 import { MobileSidebar } from "@/components/layout/mobile-sidebar";
 import { LearnerProvider } from "@/contexts/LearnerContext";
 import "./globals.css";
+
+const inter = Inter({
+  subsets: ["latin"],
+  variable: "--font-sans",
+  display: "swap",
+});
+
+const playfair = Playfair_Display({
+  subsets: ["latin"],
+  variable: "--font-serif",
+  display: "swap",
+});
 
 export const metadata: Metadata = {
   title: "Nexus Mastery",
@@ -18,7 +29,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className="antialiased">
+      <body className={`${inter.variable} ${playfair.variable} font-sans antialiased`}>
         <LearnerProvider>
           <div className="flex min-h-screen">
             <Sidebar />

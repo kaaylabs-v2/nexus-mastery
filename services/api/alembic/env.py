@@ -18,6 +18,7 @@ from app.core.database import Base
 from app.models import (  # noqa: F401
     Organization, User, Course, MasteryProfile,
     Enrollment, Conversation, ContentEmbedding,
+    NotebookEntry, VocabularyEntry,
 )
 
 target_metadata = Base.metadata

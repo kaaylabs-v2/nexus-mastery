@@ -8,6 +8,7 @@ from app.models.content_embedding import ContentEmbedding
 from app.models.program import Category, Domain, Capability, Milestone, FocusSession
 from app.models.course_file import CourseFile, UploadStatus
 from app.models.ingestion_job import IngestionJob, IngestionStatus
+from app.models.notebook import NotebookEntry, VocabularyEntry
 
 __all__ = [
     "Organization", "PlanTier",
@@ -20,4 +21,5 @@ __all__ = [
     "Category", "Domain", "Capability", "Milestone", "FocusSession",
     "CourseFile", "UploadStatus",
     "IngestionJob", "IngestionStatus",
+    "NotebookEntry", "VocabularyEntry",
 ]
