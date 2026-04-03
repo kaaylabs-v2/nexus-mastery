@@ -153,6 +153,83 @@ async def list_available_courses(
     return result.scalars().all()
 
 
+# ── Course Materials Endpoint ─────────────────────────────────────────────────
+
+
+@router.get("/{course_id}/materials")
+async def get_course_materials(
+    course_id: UUID,
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Get course materials organized by outline topic for the Sources pane."""
+    from app.models.content_embedding import ContentEmbedding
+    from app.models.course_file import CourseFile
+
+    result = await db.execute(
+        select(Course).where(Course.id == course_id, Course.org_id == user.org_id)
+    )
+    course = result.scalar_one_or_none()
+    if not course:
+        raise HTTPException(status_code=404, detail="Course not found")
+
+    # Get uploaded files
+    files_result = await db.execute(
+        select(CourseFile).where(CourseFile.course_id == course_id)
+    )
+    files = files_result.scalars().all()
+
+    # Get content chunks
+    chunks_result = await db.execute(
+        select(ContentEmbedding)
+        .where(ContentEmbedding.course_id == course_id)
+        .order_by(ContentEmbedding.created_at)
+    )
+    chunks = chunks_result.scalars().all()
+
+    outline = course.course_outline or []
+    materials = []
+    for section in outline:
+        sid = section.get("id", 0)
+        # Match chunks to topics by index ranges
+        section_chunks = []
+        for c in chunks:
+            meta = c.chunk_metadata or {}
+            chunk_idx = meta.get("index", 0)
+            # Distribute chunks across topics roughly
+            topic_count = len(outline) or 1
+            chunk_topic = min(chunk_idx // max(len(chunks) // topic_count, 1) + 1, len(outline))
+            if chunk_topic == sid:
+                section_chunks.append({
+                    "id": str(c.id),
+                    "content": c.chunk_text[:500],
+                    "source_file": meta.get("source", "uploaded"),
+                    "chunk_index": meta.get("index", 0),
+                })
+
+        materials.append({
+            "topic_id": sid,
+            "topic_title": section.get("title", ""),
+            "chunks": section_chunks[:5],
+        })
+
+    return {
+        "course_id": str(course_id),
+        "title": course.title,
+        "outline": outline,
+        "files": [
+            {
+                "id": str(f.id),
+                "filename": f.original_filename,
+                "file_type": f.file_type,
+                "uploaded_at": str(f.created_at),
+            }
+            for f in files
+        ],
+        "materials": materials,
+    }
+
+
 # ── Quiz Endpoints ────────────────────────────────────────────────────────────
 
 @router.get("/{course_id}/quiz")

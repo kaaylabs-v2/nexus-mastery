@@ -4,7 +4,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from app.core.config import get_settings
-from app.routers import auth, courses, conversations, orgs, mastery, programs, voice, admin, enrollments
+from app.routers import auth, courses, conversations, orgs, mastery, programs, voice, admin, enrollments, notebook
 
 settings = get_settings()
 
@@ -42,6 +42,7 @@ app.include_router(programs.router)
 app.include_router(voice.router)
 app.include_router(admin.router)
 app.include_router(enrollments.router)
+app.include_router(notebook.router)
 
 
 # Serve generated thumbnails

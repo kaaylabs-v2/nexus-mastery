@@ -390,6 +390,105 @@ class ApiClient {
     const wsBase = API_BASE.replace(/^http/, "ws");
     return `${wsBase}/api/voice/stream`;
   }
+
+  // ── Course Materials ──────────────────────────────────────────────────────
+
+  async getCourseMaterials(courseId: string): Promise<{
+    course_id: string;
+    title: string;
+    outline: Array<{ id: number; title: string; description?: string; key_concepts?: string[] }>;
+    files: Array<{ id: string; filename: string; file_type: string; uploaded_at: string }>;
+    materials: Array<{ topic_id: number; topic_title: string; chunks: Array<{ id: string; content: string; source_file?: string; chunk_index: number }> }>;
+  }> {
+    await this.ensureToken();
+    const headers: Record<string, string> = {};
+    if (this.token) headers["Authorization"] = `Bearer ${this.token}`;
+    const response = await fetch(`${API_BASE}/api/courses/${courseId}/materials`, { headers });
+    if (!response.ok) throw new Error(`Failed to load materials: ${response.status}`);
+    return response.json();
+  }
+
+  // ── Notebook ──────────────────────────────────────────────────────────────
+
+  async listNotes(courseId?: string): Promise<Array<{ id: string; title: string; content: string; course_id: string | null; tags: string[]; source: string; created_at: string }>> {
+    await this.ensureToken();
+    const headers: Record<string, string> = {};
+    if (this.token) headers["Authorization"] = `Bearer ${this.token}`;
+    const url = courseId ? `${API_BASE}/api/notebook/notes?course_id=${courseId}` : `${API_BASE}/api/notebook/notes`;
+    const response = await fetch(url, { headers });
+    if (!response.ok) throw new Error(`Failed to load notes: ${response.status}`);
+    return response.json();
+  }
+
+  async createNote(note: { title: string; content: string; course_id?: string; tags?: string[]; source?: string; source_message_id?: string }) {
+    await this.ensureToken();
+    const headers: Record<string, string> = { "Content-Type": "application/json" };
+    if (this.token) headers["Authorization"] = `Bearer ${this.token}`;
+    const response = await fetch(`${API_BASE}/api/notebook/notes`, {
+      method: "POST", headers, body: JSON.stringify(note),
+    });
+    if (!response.ok) throw new Error(`Failed to create note: ${response.status}`);
+    return response.json();
+  }
+
+  async deleteNote(noteId: string) {
+    await this.ensureToken();
+    const headers: Record<string, string> = {};
+    if (this.token) headers["Authorization"] = `Bearer ${this.token}`;
+    await fetch(`${API_BASE}/api/notebook/notes/${noteId}`, { method: "DELETE", headers });
+  }
+
+  // ── Vocabulary ────────────────────────────────────────────────────────────
+
+  async listVocab(courseId?: string): Promise<Array<{ id: string; term: string; definition: string; example?: string; course_id: string | null; tags: string[]; created_at: string }>> {
+    await this.ensureToken();
+    const headers: Record<string, string> = {};
+    if (this.token) headers["Authorization"] = `Bearer ${this.token}`;
+    const url = courseId ? `${API_BASE}/api/notebook/vocab?course_id=${courseId}` : `${API_BASE}/api/notebook/vocab`;
+    const response = await fetch(url, { headers });
+    if (!response.ok) throw new Error(`Failed to load vocab: ${response.status}`);
+    return response.json();
+  }
+
+  async createVocab(vocab: { term: string; definition: string; example?: string; course_id?: string; tags?: string[] }) {
+    await this.ensureToken();
+    const headers: Record<string, string> = { "Content-Type": "application/json" };
+    if (this.token) headers["Authorization"] = `Bearer ${this.token}`;
+    const response = await fetch(`${API_BASE}/api/notebook/vocab`, {
+      method: "POST", headers, body: JSON.stringify(vocab),
+    });
+    if (!response.ok) throw new Error(`Failed to create vocab: ${response.status}`);
+    return response.json();
+  }
+
+  async deleteVocab(vocabId: string) {
+    await this.ensureToken();
+    const headers: Record<string, string> = {};
+    if (this.token) headers["Authorization"] = `Bearer ${this.token}`;
+    await fetch(`${API_BASE}/api/notebook/vocab/${vocabId}`, { method: "DELETE", headers });
+  }
+
+  async generateDefinition(term: string, courseContext?: string): Promise<{ term: string; definition: string }> {
+    await this.ensureToken();
+    const headers: Record<string, string> = { "Content-Type": "application/json" };
+    if (this.token) headers["Authorization"] = `Bearer ${this.token}`;
+    const response = await fetch(`${API_BASE}/api/notebook/vocab/generate-definition`, {
+      method: "POST", headers, body: JSON.stringify({ term, course_context: courseContext }),
+    });
+    if (!response.ok) throw new Error(`Failed to generate definition: ${response.status}`);
+    return response.json();
+  }
+
+  async generateExample(term: string, courseContext?: string): Promise<{ term: string; example: string }> {
+    await this.ensureToken();
+    const headers: Record<string, string> = { "Content-Type": "application/json" };
+    if (this.token) headers["Authorization"] = `Bearer ${this.token}`;
+    const response = await fetch(`${API_BASE}/api/notebook/vocab/generate-example`, {
+      method: "POST", headers, body: JSON.stringify({ term, course_context: courseContext }),
+    });
+    if (!response.ok) throw new Error(`Failed to generate example: ${response.status}`);
+    return response.json();
+  }
 }
 
 export const apiClient = new ApiClient();
